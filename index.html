@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
@@ -10,6 +10,8 @@
     <meta name="theme-color" content="#123d3a" />
     <title>VetMaster | Veterinary Exam Practice</title>
     <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -32,29 +34,47 @@
           <small>Veterinary Exam Practice</small>
         </span>
       </a>
-      <div class="header-pill">
-        <span class="status-dot" aria-hidden="true"></span>
-        جاهز للتدريب
+      <div class="header-actions">
+        <span id="bank-status" class="header-pill">
+          <span class="status-dot" aria-hidden="true"></span>
+          جاري تحميل بنك الأسئلة
+        </span>
+        <a class="admin-link" href="admin.html">لوحة الإدارة</a>
       </div>
     </header>
 
     <main class="app-main">
       <section id="home-screen" class="screen active" aria-labelledby="home-title">
+        <div id="resume-banner" class="resume-banner hidden" role="status">
+          <div>
+            <strong>عندك امتحان غير مكتمل</strong>
+            <span id="resume-summary">كمّل من المكان اللي وقفت عنده.</span>
+          </div>
+          <div class="resume-actions">
+            <button id="resume-exam" class="button button-primary button-small" type="button">
+              متابعة الامتحان
+            </button>
+            <button id="discard-exam" class="button button-ghost button-small" type="button">
+              حذف المحاولة
+            </button>
+          </div>
+        </div>
+
         <div class="hero-grid">
           <div class="hero-copy">
-            <span class="eyebrow">منصة تدريب بيطرية • الإصدار الأول</span>
+            <span class="eyebrow">منصة تدريب بيطرية • الإصدار الثاني</span>
             <h1 id="home-title">
               امتحانك القادم
               <span>يبدأ من هون.</span>
             </h1>
             <p>
-              أسئلة مباشرة على نمط الامتحانات التنافسية، مع مؤقت، نتيجة فورية،
-              مراجعة كاملة، وقائمة ذكية للأسئلة اللي أخطأت فيها.
+              اختَر عدد الأسئلة، الوقت، المواضيع، والصعوبة. تدرب بوضع الدراسة
+              أو جرّب امتحانًا كاملًا مع مراجعة ذكية لأخطائك.
             </p>
 
             <div class="hero-actions">
               <button id="start-exam" class="button button-primary" type="button">
-                ابدأ امتحان جديد
+                جهّز امتحان جديد
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="m9 18 6-6-6-6" />
                 </svg>
@@ -63,28 +83,32 @@
                 تدرب على أخطائك
                 <span id="mistakes-badge" class="count-badge">0</span>
               </button>
+              <button id="practice-favorites" class="button button-secondary" type="button">
+                الأسئلة المفضلة
+                <span id="favorites-badge" class="count-badge">0</span>
+              </button>
             </div>
 
-            <div class="exam-specs" aria-label="مواصفات الامتحان">
+            <div class="exam-specs" role="group" aria-label="مواصفات المنصة">
               <span>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 7v5l3 2" />
                 </svg>
-                15 دقيقة
+                وقت مرن
               </span>
               <span>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" />
                   <path d="M8 9h8M8 13h8M8 17h5" />
                 </svg>
-                10 أسئلة
+                حتى كل الأسئلة
               </span>
               <span>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="m5 12 4 4L19 6" />
                 </svg>
-                نتيجة فورية
+                حفظ تلقائي
               </span>
             </div>
           </div>
@@ -113,7 +137,7 @@
               </div>
             </div>
 
-            <div class="mini-stats">
+            <div class="mini-stats mini-stats-three">
               <article>
                 <span>آخر محاولة</span>
                 <strong id="last-score">—</strong>
@@ -122,18 +146,203 @@
                 <span>بحاجة لمراجعة</span>
                 <strong id="mistake-count">0</strong>
               </article>
+              <article>
+                <span>المفضلة</span>
+                <strong id="favorite-count">0</strong>
+              </article>
             </div>
 
             <div class="dashboard-note">
               <span aria-hidden="true">✦</span>
-              كل إجابة خاطئة تُضاف تلقائيًا إلى قسم «تدرب على أخطائك».
+              الإجابة الخاطئة تُضاف لبنك الأخطاء، والإجابة الصحيحة لاحقًا تزيلها
+              تلقائيًا.
             </div>
           </aside>
         </div>
       </section>
 
+      <section id="setup-screen" class="screen" aria-labelledby="setup-title">
+        <div class="setup-shell">
+          <div class="setup-heading">
+            <div>
+              <span id="setup-kicker" class="eyebrow">امتحان جديد</span>
+              <h1 id="setup-title">جهّز امتحانك</h1>
+              <p>كل الخيارات قابلة للتغيير قبل البدء.</p>
+            </div>
+            <button id="cancel-setup" class="button button-ghost" type="button">
+              رجوع
+            </button>
+          </div>
+
+          <form id="exam-settings" class="settings-grid">
+            <section class="settings-card">
+              <div class="settings-card-heading">
+                <span class="step-number">01</span>
+                <div>
+                  <h2>عدد الأسئلة</h2>
+                  <p>يُختار العدد من الأسئلة المطابقة للفلاتر.</p>
+                </div>
+              </div>
+              <div class="choice-row" role="radiogroup" aria-label="عدد الأسئلة">
+                <label><input type="radio" name="question-count" value="5" /><span>5</span></label>
+                <label><input type="radio" name="question-count" value="10" checked /><span>10</span></label>
+                <label><input type="radio" name="question-count" value="20" /><span>20</span></label>
+                <label><input type="radio" name="question-count" value="30" /><span>30</span></label>
+                <label><input type="radio" name="question-count" value="all" /><span>الكل</span></label>
+              </div>
+            </section>
+
+            <section class="settings-card">
+              <div class="settings-card-heading">
+                <span class="step-number">02</span>
+                <div>
+                  <h2>الوقت</h2>
+                  <p>وقت كامل، وقت لكل سؤال، أو بدون مؤقت.</p>
+                </div>
+              </div>
+              <div class="choice-row choice-row-wide" role="radiogroup" aria-label="نظام الوقت">
+                <label>
+                  <input type="radio" name="timer-mode" value="total" checked />
+                  <span>وقت كامل</span>
+                </label>
+                <label>
+                  <input type="radio" name="timer-mode" value="question" />
+                  <span>لكل سؤال</span>
+                </label>
+                <label>
+                  <input type="radio" name="timer-mode" value="none" />
+                  <span>بدون وقت</span>
+                </label>
+              </div>
+              <div class="inline-fields">
+                <label id="total-time-field" class="field">
+                  <span>مدة الامتحان</span>
+                  <select id="total-minutes">
+                    <option value="5">5 دقائق</option>
+                    <option value="10">10 دقائق</option>
+                    <option value="15" selected>15 دقيقة</option>
+                    <option value="20">20 دقيقة</option>
+                    <option value="30">30 دقيقة</option>
+                    <option value="60">60 دقيقة</option>
+                  </select>
+                </label>
+                <label id="question-time-field" class="field hidden">
+                  <span>مدة السؤال</span>
+                  <select id="question-seconds">
+                    <option value="30">30 ثانية</option>
+                    <option value="45">45 ثانية</option>
+                    <option value="60" selected>60 ثانية</option>
+                    <option value="90">90 ثانية</option>
+                    <option value="120">دقيقتان</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-card settings-card-full">
+              <div class="settings-card-heading">
+                <span class="step-number">03</span>
+                <div>
+                  <h2>المواضيع والمقاطع</h2>
+                  <p>اختَر موضوعًا كاملًا أو مقاطع محددة منه.</p>
+                </div>
+              </div>
+              <div class="filter-toolbar">
+                <button id="select-all-topics" class="text-button" type="button">تحديد الكل</button>
+                <button id="clear-all-topics" class="text-button" type="button">إلغاء الكل</button>
+              </div>
+              <div id="topic-options" class="topic-options" aria-live="polite"></div>
+            </section>
+
+            <section class="settings-card">
+              <div class="settings-card-heading">
+                <span class="step-number">04</span>
+                <div>
+                  <h2>مستوى الصعوبة</h2>
+                  <p>يمكنك خلط جميع المستويات.</p>
+                </div>
+              </div>
+              <div class="choice-row choice-row-wide" role="radiogroup" aria-label="الصعوبة">
+                <label><input type="radio" name="difficulty" value="mixed" checked /><span>مختلط</span></label>
+                <label><input type="radio" name="difficulty" value="easy" /><span>سهل</span></label>
+                <label><input type="radio" name="difficulty" value="medium" /><span>متوسط</span></label>
+                <label><input type="radio" name="difficulty" value="hard" /><span>صعب</span></label>
+              </div>
+            </section>
+
+            <section class="settings-card">
+              <div class="settings-card-heading">
+                <span class="step-number">05</span>
+                <div>
+                  <h2>طريقة التدريب</h2>
+                  <p>النتيجة آخر الامتحان أو تصحيح مباشر.</p>
+                </div>
+              </div>
+              <div class="mode-cards" role="radiogroup" aria-label="طريقة التدريب">
+                <label>
+                  <input type="radio" name="feedback-mode" value="exam" checked />
+                  <span>
+                    <strong>Exam Mode</strong>
+                    <small>التصحيح بعد إنهاء الامتحان</small>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="feedback-mode" value="study" />
+                  <span>
+                    <strong>Study Mode</strong>
+                    <small>تصحيح وشرح مباشر</small>
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-card settings-card-full">
+              <div class="settings-card-heading">
+                <span class="step-number">06</span>
+                <div>
+                  <h2>الترتيب</h2>
+                  <p>تحكم بخلط الأسئلة والخيارات.</p>
+                </div>
+              </div>
+              <div class="toggle-grid">
+                <label class="toggle-line">
+                  <span>
+                    <strong>خلط ترتيب الأسئلة</strong>
+                    <small>ترتيب جديد في كل محاولة</small>
+                  </span>
+                  <input id="shuffle-questions" type="checkbox" checked />
+                  <i aria-hidden="true"></i>
+                </label>
+                <label class="toggle-line">
+                  <span>
+                    <strong>خلط ترتيب الخيارات</strong>
+                    <small>تغيير مكان الإجابة الصحيحة</small>
+                  </span>
+                  <input id="shuffle-options" type="checkbox" checked />
+                  <i aria-hidden="true"></i>
+                </label>
+              </div>
+            </section>
+            <button class="sr-only" type="submit">ابدأ الامتحان بالإعدادات المحددة</button>
+          </form>
+
+          <div class="setup-footer">
+            <div>
+              <span>الأسئلة المتاحة حسب اختيارك</span>
+              <strong id="available-count">0</strong>
+            </div>
+            <button id="launch-exam" class="button button-primary" type="button">
+              ابدأ الامتحان
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section id="quiz-screen" class="screen" aria-labelledby="question-text">
-        <div class="quiz-shell">
+        <div class="quiz-shell quiz-shell-wide">
           <div class="quiz-toolbar">
             <div>
               <span id="quiz-mode" class="mode-pill">امتحان تجريبي</span>
@@ -159,22 +368,60 @@
             <span id="progress-value"></span>
           </div>
 
-          <article class="question-card">
-            <div class="question-meta">
-              <span id="question-category">Viral Diseases</span>
-              <span id="question-number-mark">01</span>
-            </div>
-            <h2 id="question-text" dir="ltr">Loading question…</h2>
-            <fieldset id="options-list" class="options-list" dir="ltr">
-              <legend class="sr-only">Choose one answer</legend>
-            </fieldset>
-          </article>
+          <div class="quiz-layout">
+            <article class="question-card">
+              <div class="question-meta">
+                <div class="question-taxonomy">
+                  <span id="question-category">Viral Diseases</span>
+                  <small id="question-subtopic">General</small>
+                </div>
+                <div class="question-tools">
+                  <button id="favorite-question" class="icon-button" type="button" aria-label="إضافة للمفضلة" title="المفضلة">
+                    <span aria-hidden="true">☆</span>
+                  </button>
+                  <button id="flag-question" class="icon-button" type="button" aria-label="تحديد للمراجعة" title="تحديد للمراجعة">
+                    <span aria-hidden="true">⚑</span>
+                  </button>
+                  <span id="question-number-mark">01</span>
+                </div>
+              </div>
+              <h2 id="question-text" dir="ltr">Loading question…</h2>
+              <img
+                id="question-image"
+                class="question-image hidden"
+                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                alt=""
+              />
+              <fieldset id="options-list" class="options-list" dir="ltr">
+                <legend class="sr-only">Choose one answer</legend>
+              </fieldset>
+              <div id="study-feedback" class="study-feedback hidden" dir="ltr"></div>
+            </article>
+
+            <aside class="navigator-panel" aria-labelledby="navigator-title">
+              <div class="navigator-heading">
+                <div>
+                  <span class="card-kicker">التنقل السريع</span>
+                  <h2 id="navigator-title">الأسئلة</h2>
+                </div>
+                <button id="finish-exam" class="text-button danger-text" type="button">
+                  إنهاء
+                </button>
+              </div>
+              <div id="question-navigator" class="question-navigator"></div>
+              <div class="navigator-legend">
+                <span><i class="legend-box answered"></i> مُجاب</span>
+                <span><i class="legend-box flagged"></i> للمراجعة</span>
+                <span><i class="legend-box"></i> غير مُجاب</span>
+              </div>
+            </aside>
+          </div>
 
           <div class="quiz-actions">
             <button id="previous-question" class="button button-ghost" type="button">
               السؤال السابق
             </button>
-            <span id="answer-status" class="answer-status">اختر إجابة للمتابعة</span>
+            <span id="answer-status" class="answer-status">اختر إجابة أو انتقل للسؤال التالي</span>
             <button id="next-question" class="button button-primary" type="button">
               السؤال التالي
             </button>
@@ -199,7 +446,7 @@
             </div>
           </div>
 
-          <div class="result-score" aria-label="النتيجة النهائية">
+          <div class="result-score" role="group" aria-label="النتيجة النهائية">
             <div class="result-ring">
               <svg viewBox="0 0 140 140" aria-hidden="true">
                 <circle class="orbit-track" cx="70" cy="70" r="58" />
@@ -216,6 +463,16 @@
             </div>
           </div>
         </div>
+
+        <section class="topic-results" aria-labelledby="topic-results-title">
+          <div class="review-heading compact-heading">
+            <div>
+              <span class="card-kicker">تحليل الأداء</span>
+              <h2 id="topic-results-title">نتيجتك حسب الموضوع</h2>
+            </div>
+          </div>
+          <div id="topic-breakdown" class="topic-breakdown"></div>
+        </section>
 
         <div class="review-heading">
           <div>
@@ -234,7 +491,7 @@
           <span class="error-icon" aria-hidden="true">!</span>
           <h1 id="error-title">تعذّر تحميل الأسئلة</h1>
           <p>
-            تأكد أن ملف <code>questions.json</code> موجود بجانب ملفات الموقع، ثم
+            تأكد من اتصال الإنترنت أو وجود ملف <code>questions.json</code>، ثم
             أعد تحميل الصفحة.
           </p>
           <button class="button button-primary" type="button" onclick="location.reload()">
@@ -246,7 +503,7 @@
 
     <footer class="app-footer">
       <span>VetMaster • Built for veterinary exam preparation</span>
-      <span>الإصدار 1.0</span>
+      <span>الإصدار 2.0</span>
     </footer>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

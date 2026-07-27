@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="VetMaster question bank administration" />
+    <meta name="theme-color" content="#123d3a" />
+    <title>VetMaster | لوحة الإدارة</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="admin.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="admin.js" defer></script>
+  </head>
+  <body class="admin-body">
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="app-header admin-header">
+      <a class="brand" href="index.html" aria-label="العودة إلى VetMaster">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <path d="M21 7h6v12h12v6H27v12h-6V25H9v-6h12V7Z" />
+            <path
+              d="M36.7 7.9c3.5 3.1 5.3 7 5.3 11.8 0 10.2-8.1 18.4-18 18.4S6 29.9 6 19.7c0-4.8 1.8-8.7 5.3-11.8"
+              class="brand-ring"
+            />
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>VetMaster</strong>
+          <small>Question Bank Admin</small>
+        </span>
+      </a>
+      <a class="admin-link" href="index.html">فتح منصة الامتحان</a>
+    </header>
+
+    <main class="admin-main">
+      <section id="login-view" class="login-view" aria-labelledby="login-title">
+        <div class="login-card">
+          <span class="eyebrow">منطقة خاصة</span>
+          <h1 id="login-title">دخول لوحة الإدارة</h1>
+          <p>استخدم حساب المدير الذي أنشأته داخل Supabase.</p>
+          <form id="login-form" class="admin-form">
+            <label class="admin-field">
+              <span>البريد الإلكتروني</span>
+              <input
+                id="login-email"
+                type="email"
+                autocomplete="username"
+                required
+                dir="ltr"
+                placeholder="admin@example.com"
+              />
+            </label>
+            <label class="admin-field">
+              <span>كلمة المرور</span>
+              <input
+                id="login-password"
+                type="password"
+                autocomplete="current-password"
+                minlength="6"
+                required
+                dir="ltr"
+                placeholder="••••••••"
+              />
+            </label>
+            <p id="login-error" class="form-error hidden" role="alert"></p>
+            <button id="login-button" class="button button-primary" type="submit">
+              تسجيل الدخول
+            </button>
+          </form>
+          <small class="login-note">لا يوجد تسجيل حساب جديد من هذه الصفحة.</small>
+        </div>
+      </section>
+
+      <section id="dashboard-view" class="admin-dashboard hidden">
+        <div class="admin-welcome">
+          <div>
+            <span class="eyebrow">لوحة الإدارة</span>
+            <h1>إدارة بنك الأسئلة</h1>
+            <p>أضف المواضيع والمقاطع والأسئلة، وستظهر مباشرة في المنصة.</p>
+          </div>
+          <div class="admin-account">
+            <span id="admin-email" dir="ltr"></span>
+            <button id="sign-out" class="button button-ghost button-small" type="button">
+              تسجيل الخروج
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-stats">
+          <article>
+            <span>الأسئلة</span>
+            <strong id="questions-stat">0</strong>
+            <small id="active-questions-stat">0 فعّالة</small>
+          </article>
+          <article>
+            <span>المواضيع</span>
+            <strong id="topics-stat">0</strong>
+            <small>تصنيف رئيسي</small>
+          </article>
+          <article>
+            <span>المقاطع</span>
+            <strong id="subtopics-stat">0</strong>
+            <small>مرض أو قسم فرعي</small>
+          </article>
+        </div>
+
+        <nav class="admin-tabs" aria-label="أقسام لوحة الإدارة">
+          <button class="admin-tab active" type="button" data-tab="questions">
+            بنك الأسئلة
+          </button>
+          <button class="admin-tab" type="button" data-tab="taxonomy">
+            المواضيع والمقاطع
+          </button>
+        </nav>
+
+        <section id="questions-tab" class="admin-tab-panel active">
+          <div class="admin-toolbar">
+            <div>
+              <button id="new-question" class="button button-primary" type="button">
+                + سؤال جديد
+              </button>
+              <button id="import-questions" class="button button-secondary" type="button">
+                استيراد JSON
+              </button>
+              <input id="import-file" class="hidden" type="file" accept=".json,application/json" />
+              <button id="export-questions" class="button button-ghost" type="button">
+                تصدير JSON
+              </button>
+            </div>
+            <button id="refresh-data" class="button button-ghost" type="button">
+              تحديث البيانات
+            </button>
+          </div>
+
+          <div class="question-admin-layout">
+            <aside id="question-form-panel" class="admin-editor">
+              <div class="editor-heading">
+                <div>
+                  <span class="card-kicker">محرر السؤال</span>
+                  <h2 id="question-form-title">إضافة سؤال جديد</h2>
+                </div>
+                <button id="reset-question" class="text-button" type="button">تفريغ</button>
+              </div>
+
+              <form id="question-form" class="admin-form">
+                <input id="question-id" type="hidden" />
+                <div class="admin-field-row">
+                  <label class="admin-field">
+                    <span>الموضوع الرئيسي *</span>
+                    <select id="question-topic" required></select>
+                  </label>
+                  <label class="admin-field">
+                    <span>المقطع / المرض</span>
+                    <select id="question-subtopic"></select>
+                  </label>
+                </div>
+
+                <label class="admin-field">
+                  <span>نص السؤال *</span>
+                  <textarea
+                    id="question-text-input"
+                    rows="4"
+                    required
+                    dir="ltr"
+                    placeholder="Write the exam question here..."
+                  ></textarea>
+                </label>
+
+                <div class="options-editor" dir="ltr">
+                  <label class="admin-field">
+                    <span>Option A *</span>
+                    <input class="option-input" type="text" required />
+                  </label>
+                  <label class="admin-field">
+                    <span>Option B *</span>
+                    <input class="option-input" type="text" required />
+                  </label>
+                  <label class="admin-field">
+                    <span>Option C *</span>
+                    <input class="option-input" type="text" required />
+                  </label>
+                  <label class="admin-field">
+                    <span>Option D *</span>
+                    <input class="option-input" type="text" required />
+                  </label>
+                </div>
+
+                <div class="admin-field-row admin-field-row-three">
+                  <label class="admin-field">
+                    <span>الإجابة الصحيحة *</span>
+                    <select id="correct-index" required>
+                      <option value="0">A</option>
+                      <option value="1">B</option>
+                      <option value="2">C</option>
+                      <option value="3">D</option>
+                    </select>
+                  </label>
+                  <label class="admin-field">
+                    <span>الصعوبة *</span>
+                    <select id="question-difficulty" required>
+                      <option value="easy">سهل</option>
+                      <option value="medium" selected>متوسط</option>
+                      <option value="hard">صعب</option>
+                    </select>
+                  </label>
+                  <label class="admin-field">
+                    <span>الأولوية</span>
+                    <select id="question-priority">
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3" selected>3</option>
+                      <option value="4">4</option>
+                      <option value="5">5 — عالية</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label class="admin-field">
+                  <span>شرح الإجابة</span>
+                  <textarea
+                    id="question-explanation"
+                    rows="3"
+                    dir="ltr"
+                    placeholder="Short explanation of the correct answer..."
+                  ></textarea>
+                </label>
+
+                <div class="admin-field-row">
+                  <label class="admin-field">
+                    <span>رابط صورة — اختياري</span>
+                    <input id="question-image-url" type="url" dir="ltr" placeholder="https://..." />
+                  </label>
+                  <label class="admin-field">
+                    <span>المصدر — اختياري</span>
+                    <input id="question-source" type="text" dir="ltr" placeholder="MSD Vet Manual..." />
+                  </label>
+                </div>
+
+                <label class="admin-check">
+                  <input id="question-active" type="checkbox" checked />
+                  <span>السؤال فعّال ويظهر في الامتحانات</span>
+                </label>
+
+                <p id="question-form-error" class="form-error hidden" role="alert"></p>
+                <button id="save-question" class="button button-primary" type="submit">
+                  حفظ السؤال
+                </button>
+              </form>
+            </aside>
+
+            <div class="admin-list-panel">
+              <div class="admin-filters">
+                <label class="admin-field filter-search">
+                  <span class="sr-only">بحث</span>
+                  <input id="question-search" type="search" placeholder="ابحث بنص السؤال..." />
+                </label>
+                <label class="admin-field">
+                  <span class="sr-only">الموضوع</span>
+                  <select id="filter-topic">
+                    <option value="all">كل المواضيع</option>
+                  </select>
+                </label>
+                <label class="admin-field">
+                  <span class="sr-only">الصعوبة</span>
+                  <select id="filter-difficulty">
+                    <option value="all">كل المستويات</option>
+                    <option value="easy">سهل</option>
+                    <option value="medium">متوسط</option>
+                    <option value="hard">صعب</option>
+                  </select>
+                </label>
+                <label class="admin-field">
+                  <span class="sr-only">الحالة</span>
+                  <select id="filter-status">
+                    <option value="all">الكل</option>
+                    <option value="active">الفعّالة</option>
+                    <option value="inactive">المعطّلة</option>
+                  </select>
+                </label>
+              </div>
+              <div class="list-summary">
+                <span id="question-list-count">0 سؤال</span>
+              </div>
+              <div id="question-list" class="question-admin-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="taxonomy-tab" class="admin-tab-panel">
+          <div class="taxonomy-layout">
+            <section class="taxonomy-card">
+              <div class="editor-heading">
+                <div>
+                  <span class="card-kicker">التصنيف الرئيسي</span>
+                  <h2 id="topic-form-title">إضافة موضوع</h2>
+                </div>
+                <button id="reset-topic" class="text-button" type="button">تفريغ</button>
+              </div>
+              <form id="topic-form" class="admin-form">
+                <input id="topic-id" type="hidden" />
+                <label class="admin-field">
+                  <span>اسم الموضوع *</span>
+                  <input id="topic-name" type="text" required dir="ltr" placeholder="Viral Diseases" />
+                </label>
+                <label class="admin-field">
+                  <span>Slug — اختياري</span>
+                  <input id="topic-slug" type="text" dir="ltr" placeholder="viral-diseases" />
+                </label>
+                <label class="admin-field">
+                  <span>الوصف</span>
+                  <textarea id="topic-description" rows="2"></textarea>
+                </label>
+                <div class="admin-field-row">
+                  <label class="admin-field">
+                    <span>الترتيب</span>
+                    <input id="topic-order" type="number" min="0" value="0" />
+                  </label>
+                  <label class="admin-check compact-check">
+                    <input id="topic-active" type="checkbox" checked />
+                    <span>فعّال</span>
+                  </label>
+                </div>
+                <button class="button button-primary" type="submit">حفظ الموضوع</button>
+              </form>
+              <div id="topic-list" class="taxonomy-list"></div>
+            </section>
+
+            <section class="taxonomy-card">
+              <div class="editor-heading">
+                <div>
+                  <span class="card-kicker">المرض أو القسم</span>
+                  <h2 id="subtopic-form-title">إضافة مقطع</h2>
+                </div>
+                <button id="reset-subtopic" class="text-button" type="button">تفريغ</button>
+              </div>
+              <form id="subtopic-form" class="admin-form">
+                <input id="subtopic-id" type="hidden" />
+                <label class="admin-field">
+                  <span>يتبع للموضوع *</span>
+                  <select id="subtopic-topic" required></select>
+                </label>
+                <label class="admin-field">
+                  <span>اسم المقطع / المرض *</span>
+                  <input id="subtopic-name" type="text" required dir="ltr" placeholder="Foot-and-Mouth Disease" />
+                </label>
+                <label class="admin-field">
+                  <span>Slug — اختياري</span>
+                  <input id="subtopic-slug" type="text" dir="ltr" placeholder="fmd" />
+                </label>
+                <label class="admin-field">
+                  <span>الوصف</span>
+                  <textarea id="subtopic-description" rows="2"></textarea>
+                </label>
+                <div class="admin-field-row">
+                  <label class="admin-field">
+                    <span>الترتيب</span>
+                    <input id="subtopic-order" type="number" min="0" value="0" />
+                  </label>
+                  <label class="admin-check compact-check">
+                    <input id="subtopic-active" type="checkbox" checked />
+                    <span>فعّال</span>
+                  </label>
+                </div>
+                <button class="button button-primary" type="submit">حفظ المقطع</button>
+              </form>
+              <div id="subtopic-list" class="taxonomy-list"></div>
+            </section>
+          </div>
+          <p class="taxonomy-note">
+            لتعطيل موضوع أو مقطع بدون حذف أسئلته، افتحه وعدّل خيار «فعّال».
+          </p>
+        </section>
+      </section>
+
+      <section id="admin-error-view" class="login-view hidden">
+        <div class="login-card">
+          <span class="error-icon" aria-hidden="true">!</span>
+          <h1>تعذّر فتح لوحة الإدارة</h1>
+          <p id="admin-error-message">تأكد من الاتصال وإعدادات Supabase.</p>
+          <button class="button button-primary" type="button" onclick="location.reload()">
+            إعادة المحاولة
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <div id="admin-toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
