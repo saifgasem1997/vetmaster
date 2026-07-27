@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="VetMaster — منصة تدريب ذكية لأسئلة الامتحانات البيطرية"
+    />
+    <meta name="theme-color" content="#123d3a" />
+    <title>VetMaster | Veterinary Exam Practice</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="app-header">
+      <a class="brand" href="#" id="brand-home" aria-label="العودة إلى الرئيسية">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <path d="M21 7h6v12h12v6H27v12h-6V25H9v-6h12V7Z" />
+            <path
+              d="M36.7 7.9c3.5 3.1 5.3 7 5.3 11.8 0 10.2-8.1 18.4-18 18.4S6 29.9 6 19.7c0-4.8 1.8-8.7 5.3-11.8"
+              class="brand-ring"
+            />
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>VetMaster</strong>
+          <small>Veterinary Exam Practice</small>
+        </span>
+      </a>
+      <div class="header-pill">
+        <span class="status-dot" aria-hidden="true"></span>
+        جاهز للتدريب
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section id="home-screen" class="screen active" aria-labelledby="home-title">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <span class="eyebrow">منصة تدريب بيطرية • الإصدار الأول</span>
+            <h1 id="home-title">
+              امتحانك القادم
+              <span>يبدأ من هون.</span>
+            </h1>
+            <p>
+              أسئلة مباشرة على نمط الامتحانات التنافسية، مع مؤقت، نتيجة فورية،
+              مراجعة كاملة، وقائمة ذكية للأسئلة اللي أخطأت فيها.
+            </p>
+
+            <div class="hero-actions">
+              <button id="start-exam" class="button button-primary" type="button">
+                ابدأ امتحان جديد
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+              <button id="practice-mistakes" class="button button-secondary" type="button">
+                تدرب على أخطائك
+                <span id="mistakes-badge" class="count-badge">0</span>
+              </button>
+            </div>
+
+            <div class="exam-specs" aria-label="مواصفات الامتحان">
+              <span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+                15 دقيقة
+              </span>
+              <span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" />
+                  <path d="M8 9h8M8 13h8M8 17h5" />
+                </svg>
+                10 أسئلة
+              </span>
+              <span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m5 12 4 4L19 6" />
+                </svg>
+                نتيجة فورية
+              </span>
+            </div>
+          </div>
+
+          <aside class="dashboard-card" aria-label="ملخص أدائك">
+            <div class="dashboard-top">
+              <div>
+                <span class="card-kicker">لوحة الأداء</span>
+                <h2>تقدّمك محفوظ</h2>
+              </div>
+              <span class="pulse-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 13h3l2-5 4 10 2-5h5" />
+                </svg>
+              </span>
+            </div>
+
+            <div class="score-orbit">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="orbit-track" cx="60" cy="60" r="50" />
+                <circle id="best-score-ring" class="orbit-value" cx="60" cy="60" r="50" />
+              </svg>
+              <div>
+                <strong id="best-score">—</strong>
+                <span>أفضل نتيجة</span>
+              </div>
+            </div>
+
+            <div class="mini-stats">
+              <article>
+                <span>آخر محاولة</span>
+                <strong id="last-score">—</strong>
+              </article>
+              <article>
+                <span>بحاجة لمراجعة</span>
+                <strong id="mistake-count">0</strong>
+              </article>
+            </div>
+
+            <div class="dashboard-note">
+              <span aria-hidden="true">✦</span>
+              كل إجابة خاطئة تُضاف تلقائيًا إلى قسم «تدرب على أخطائك».
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="quiz-screen" class="screen" aria-labelledby="question-text">
+        <div class="quiz-shell">
+          <div class="quiz-toolbar">
+            <div>
+              <span id="quiz-mode" class="mode-pill">امتحان تجريبي</span>
+              <strong id="question-counter">السؤال 1 من 10</strong>
+            </div>
+            <div id="timer" class="timer" aria-live="polite">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="13" r="8" />
+                <path d="M12 9v4l2.5 1.5M9 3h6" />
+              </svg>
+              <span id="timer-value">15:00</span>
+            </div>
+          </div>
+
+          <div
+            class="progress-track"
+            role="progressbar"
+            aria-label="تقدم الامتحان"
+            aria-valuemin="1"
+            aria-valuemax="10"
+            aria-valuenow="1"
+          >
+            <span id="progress-value"></span>
+          </div>
+
+          <article class="question-card">
+            <div class="question-meta">
+              <span id="question-category">Viral Diseases</span>
+              <span id="question-number-mark">01</span>
+            </div>
+            <h2 id="question-text" dir="ltr">Loading question…</h2>
+            <fieldset id="options-list" class="options-list" dir="ltr">
+              <legend class="sr-only">Choose one answer</legend>
+            </fieldset>
+          </article>
+
+          <div class="quiz-actions">
+            <button id="previous-question" class="button button-ghost" type="button">
+              السؤال السابق
+            </button>
+            <span id="answer-status" class="answer-status">اختر إجابة للمتابعة</span>
+            <button id="next-question" class="button button-primary" type="button">
+              السؤال التالي
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="result-screen" class="screen" aria-labelledby="result-title">
+        <div class="result-hero">
+          <div class="result-copy">
+            <span id="result-label" class="eyebrow">اكتملت المحاولة</span>
+            <h1 id="result-title">هاي نتيجتك يا دكتور</h1>
+            <p id="result-message">راجع التفاصيل تحت وثبّت المعلومات اللي أخطأت فيها.</p>
+
+            <div class="result-actions">
+              <button id="new-exam" class="button button-primary" type="button">
+                امتحان جديد
+              </button>
+              <button id="go-home" class="button button-secondary" type="button">
+                العودة للرئيسية
+              </button>
+            </div>
+          </div>
+
+          <div class="result-score" aria-label="النتيجة النهائية">
+            <div class="result-ring">
+              <svg viewBox="0 0 140 140" aria-hidden="true">
+                <circle class="orbit-track" cx="70" cy="70" r="58" />
+                <circle id="result-ring-value" class="orbit-value" cx="70" cy="70" r="58" />
+              </svg>
+              <div>
+                <strong id="result-percent">0%</strong>
+                <span id="result-fraction">0 / 10</span>
+              </div>
+            </div>
+            <div class="result-breakdown">
+              <span><i class="dot correct-dot"></i> صحيحة <strong id="correct-count">0</strong></span>
+              <span><i class="dot wrong-dot"></i> خاطئة <strong id="wrong-count">0</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-heading">
+          <div>
+            <span class="card-kicker">مراجعة الإجابات</span>
+            <h2>ثبّت المعلومة قبل ما تكمل</h2>
+          </div>
+          <button id="toggle-review" class="button button-ghost" type="button">
+            إخفاء المراجعة
+          </button>
+        </div>
+        <div id="review-list" class="review-list"></div>
+      </section>
+
+      <section id="error-screen" class="screen" aria-labelledby="error-title">
+        <div class="error-card">
+          <span class="error-icon" aria-hidden="true">!</span>
+          <h1 id="error-title">تعذّر تحميل الأسئلة</h1>
+          <p>
+            تأكد أن ملف <code>questions.json</code> موجود بجانب ملفات الموقع، ثم
+            أعد تحميل الصفحة.
+          </p>
+          <button class="button button-primary" type="button" onclick="location.reload()">
+            إعادة المحاولة
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span>VetMaster • Built for veterinary exam preparation</span>
+      <span>الإصدار 1.0</span>
+    </footer>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

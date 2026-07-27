@@ -1,0 +1,132 @@
+[
+  {
+    "id": "fmd-hallmark-lesions",
+    "category": "Viral Diseases",
+    "question": "Which finding is most characteristic of foot-and-mouth disease in adult cattle?",
+    "options": [
+      "Vesicles and erosions on the mouth, feet, and teats",
+      "Firm generalized skin nodules",
+      "Severe hemorrhagic enteritis",
+      "Unilateral purulent nasal discharge"
+    ],
+    "answer": 0,
+    "explanation": "Foot-and-mouth disease classically produces fever followed by vesicles and erosions in the oral cavity, on the feet, and sometimes on the teats."
+  },
+  {
+    "id": "ppr-susceptible-species",
+    "category": "Viral Diseases",
+    "question": "Which domestic animals are primarily affected by peste des petits ruminants (PPR)?",
+    "options": [
+      "Cattle and buffalo",
+      "Sheep and goats",
+      "Horses and donkeys",
+      "Dogs and cats"
+    ],
+    "answer": 1,
+    "explanation": "PPR is an acute, highly contagious viral disease that mainly affects sheep and goats, with goats often showing more severe disease."
+  },
+  {
+    "id": "lsd-agent-genus",
+    "category": "Viral Diseases",
+    "question": "Lumpy skin disease virus belongs to which viral genus?",
+    "options": [
+      "Orbivirus",
+      "Morbillivirus",
+      "Capripoxvirus",
+      "Aphthovirus"
+    ],
+    "answer": 2,
+    "explanation": "Lumpy skin disease virus is a Capripoxvirus, closely related to sheep pox and goat pox viruses."
+  },
+  {
+    "id": "bluetongue-vector",
+    "category": "Viral Diseases",
+    "question": "What is the principal biological vector of bluetongue virus?",
+    "options": [
+      "Hard ticks",
+      "Culicoides biting midges",
+      "Stable flies",
+      "Mosquitoes"
+    ],
+    "answer": 1,
+    "explanation": "Bluetongue virus is transmitted mainly by infected Culicoides biting midges."
+  },
+  {
+    "id": "ibr-agent",
+    "category": "Cattle Diseases",
+    "question": "Which agent causes infectious bovine rhinotracheitis (IBR)?",
+    "options": [
+      "Bovine viral diarrhea virus",
+      "Bovine respiratory syncytial virus",
+      "Bovine alphaherpesvirus 1",
+      "Bovine coronavirus"
+    ],
+    "answer": 2,
+    "explanation": "IBR is caused by bovine alphaherpesvirus 1 (BoHV-1), which establishes lifelong latency after infection."
+  },
+  {
+    "id": "ehv1-key-association",
+    "category": "Equine Diseases",
+    "question": "Compared with EHV-4, EHV-1 is more strongly associated with which clinical outcomes?",
+    "options": [
+      "Abortion, neonatal death, and neurologic disease",
+      "Chronic diarrhea and weight loss",
+      "Vesicles of the mouth and coronary band",
+      "Severe pruritic dermatitis"
+    ],
+    "answer": 0,
+    "explanation": "EHV-1 can cause respiratory disease but is particularly important because of its association with abortion, neonatal death, and equine herpesvirus myeloencephalopathy."
+  },
+  {
+    "id": "rabies-confirmatory-test",
+    "category": "Zoonotic Diseases",
+    "question": "Which test is routinely used to confirm rabies after death?",
+    "options": [
+      "Rose Bengal test on serum",
+      "Direct fluorescent antibody test on brain tissue",
+      "Tuberculin skin test",
+      "Modified Ziehl–Neelsen stain of feces"
+    ],
+    "answer": 1,
+    "explanation": "The direct fluorescent antibody test performed on appropriate brain tissue is a standard confirmatory method for rabies diagnosis after death."
+  },
+  {
+    "id": "fasciolosis-drug",
+    "category": "Parasitic Diseases",
+    "question": "Which drug is the classic treatment of choice for fasciolosis because it acts against both immature and adult Fasciola?",
+    "options": [
+      "Ivermectin",
+      "Praziquantel",
+      "Triclabendazole",
+      "Pyrantel"
+    ],
+    "answer": 2,
+    "explanation": "Triclabendazole has activity against both immature and adult liver flukes and is the classic drug of choice for fasciolosis."
+  },
+  {
+    "id": "theileriosis-treatment",
+    "category": "Parasitic Diseases",
+    "question": "Which drug is most specifically associated with treatment of bovine theileriosis?",
+    "options": [
+      "Amprolium",
+      "Fenbendazole",
+      "Clindamycin",
+      "Buparvaquone"
+    ],
+    "answer": 3,
+    "explanation": "Buparvaquone is a key antitheilerial drug used for treatment of bovine theileriosis."
+  },
+  {
+    "id": "babesiosis-treatment",
+    "category": "Parasitic Diseases",
+    "question": "Which drug is commonly used for treatment of bovine babesiosis?",
+    "options": [
+      "Triclabendazole",
+      "Imidocarb dipropionate",
+      "Toltrazuril",
+      "Praziquantel"
+    ],
+    "answer": 1,
+    "explanation": "Imidocarb dipropionate is commonly used against bovine Babesia infections; diminazene aceturate is another treatment used in some regions."
+  }
+]
