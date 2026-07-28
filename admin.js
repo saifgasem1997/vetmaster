@@ -6,6 +6,8 @@ const adminState = {
   topics: [],
   subtopics: [],
   questions: [],
+  selectedQuestionIds: new Set(),
+  bulkDeleting: false,
   loading: false,
   moveFile: {
     matches: [],
@@ -76,6 +78,10 @@ const adminElements = {
   filterTopic: document.querySelector("#filter-topic"),
   filterDifficulty: document.querySelector("#filter-difficulty"),
   filterStatus: document.querySelector("#filter-status"),
+  selectAllQuestions: document.querySelector("#select-all-questions"),
+  selectedQuestionsCount: document.querySelector("#selected-questions-count"),
+  clearQuestionSelection: document.querySelector("#clear-question-selection"),
+  deleteSelectedQuestions: document.querySelector("#delete-selected-questions"),
   questionListCount: document.querySelector("#question-list-count"),
   questionList: document.querySelector("#question-list"),
   topicForm: document.querySelector("#topic-form"),
@@ -288,6 +294,76 @@ function createMiniAction(label, handler, className = "") {
   return button;
 }
 
+function pruneQuestionSelection() {
+  const availableIds = new Set(
+    adminState.questions.map((question) => String(question.id)),
+  );
+  adminState.selectedQuestionIds.forEach((questionId) => {
+    if (!availableIds.has(questionId)) {
+      adminState.selectedQuestionIds.delete(questionId);
+    }
+  });
+}
+
+function updateQuestionSelectionControls(questions = getFilteredAdminQuestions()) {
+  pruneQuestionSelection();
+
+  const visibleIds = questions.map((question) => String(question.id));
+  const selectedVisibleCount = visibleIds.filter((questionId) =>
+    adminState.selectedQuestionIds.has(questionId),
+  ).length;
+  const selectedCount = adminState.selectedQuestionIds.size;
+  const allVisibleSelected =
+    visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
+
+  adminElements.selectAllQuestions.checked = allVisibleSelected;
+  adminElements.selectAllQuestions.indeterminate =
+    selectedVisibleCount > 0 && !allVisibleSelected;
+  adminElements.selectAllQuestions.disabled =
+    adminState.bulkDeleting || visibleIds.length === 0;
+
+  adminElements.selectedQuestionsCount.textContent =
+    selectedCount > 0
+      ? `${selectedCount} سؤال محدد`
+      : "لم يتم تحديد أي سؤال";
+  adminElements.clearQuestionSelection.disabled =
+    adminState.bulkDeleting || selectedCount === 0;
+  adminElements.deleteSelectedQuestions.disabled =
+    adminState.bulkDeleting || selectedCount === 0;
+  adminElements.deleteSelectedQuestions.textContent = adminState.bulkDeleting
+    ? "جاري الحذف..."
+    : selectedCount > 0
+      ? `حذف المحدد (${selectedCount})`
+      : "حذف المحدد";
+
+  adminElements.questionList
+    .querySelectorAll(".question-select-control input")
+    .forEach((checkbox) => {
+      checkbox.disabled = adminState.bulkDeleting;
+    });
+}
+
+function clearQuestionSelection({ render = true } = {}) {
+  adminState.selectedQuestionIds.clear();
+  if (render) renderQuestionList();
+}
+
+function toggleSelectAllQuestions() {
+  const questions = getFilteredAdminQuestions();
+  const shouldSelect = adminElements.selectAllQuestions.checked;
+
+  questions.forEach((question) => {
+    const questionId = String(question.id);
+    if (shouldSelect) {
+      adminState.selectedQuestionIds.add(questionId);
+    } else {
+      adminState.selectedQuestionIds.delete(questionId);
+    }
+  });
+
+  renderQuestionList();
+}
+
 function renderQuestionList() {
   const questions = getFilteredAdminQuestions();
   adminElements.questionListCount.textContent = `${questions.length} سؤال`;
@@ -301,14 +377,41 @@ function renderQuestionList() {
         ? "بنك الأسئلة فارغ. أضف أول سؤال أو استورد ملف JSON."
         : "لا توجد نتائج مطابقة للفلاتر.";
     adminElements.questionList.append(empty);
+    updateQuestionSelectionControls(questions);
     return;
   }
 
   questions.forEach((question) => {
+    const questionId = String(question.id);
     const topic = topicById(question.topic_id);
     const subtopic = subtopicById(question.subtopic_id);
     const card = document.createElement("article");
-    card.className = `admin-question-card${question.is_active ? "" : " inactive"}`;
+    card.className = `admin-question-card${question.is_active ? "" : " inactive"}${
+      adminState.selectedQuestionIds.has(questionId) ? " selected" : ""
+    }`;
+
+    const selectControl = document.createElement("label");
+    selectControl.className = "question-select-control";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = adminState.selectedQuestionIds.has(questionId);
+    checkbox.setAttribute(
+      "aria-label",
+      `تحديد السؤال: ${String(question.question_text).slice(0, 100)}`,
+    );
+    const selectText = document.createElement("span");
+    selectText.className = "sr-only";
+    selectText.textContent = "تحديد السؤال";
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        adminState.selectedQuestionIds.add(questionId);
+      } else {
+        adminState.selectedQuestionIds.delete(questionId);
+      }
+      card.classList.toggle("selected", checkbox.checked);
+      updateQuestionSelectionControls(questions);
+    });
+    selectControl.append(checkbox, selectText);
 
     const copy = document.createElement("div");
     copy.className = "admin-question-copy";
@@ -341,9 +444,11 @@ function renderQuestionList() {
       createMiniAction("حذف", () => deleteQuestion(question), "danger"),
     );
 
-    card.append(copy, actions);
+    card.append(selectControl, copy, actions);
     adminElements.questionList.append(card);
   });
+
+  updateQuestionSelectionControls(questions);
 }
 
 function renderTaxonomyLists() {
@@ -573,9 +678,78 @@ async function deleteQuestion(question) {
     showAdminToast("تعذّر حذف السؤال");
     return;
   }
+  adminState.selectedQuestionIds.delete(String(question.id));
   if (adminElements.questionId.value === String(question.id)) resetQuestionForm();
   await loadAdminData();
   showAdminToast("تم حذف السؤال");
+}
+
+async function deleteSelectedQuestions() {
+  if (adminState.bulkDeleting) return;
+
+  pruneQuestionSelection();
+  const questionIds = [...adminState.selectedQuestionIds];
+  if (questionIds.length === 0) {
+    updateQuestionSelectionControls();
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `سيتم حذف ${questionIds.length} سؤالًا محددًا نهائيًا من بنك الأسئلة. هل أنت متأكد؟`,
+  );
+  if (!confirmed) return;
+
+  adminState.bulkDeleting = true;
+  updateQuestionSelectionControls();
+
+  const deletedIds = [];
+  let deleteError = null;
+
+  try {
+    for (let index = 0; index < questionIds.length; index += 100) {
+      const batch = questionIds.slice(index, index + 100);
+      const result = await adminState.db
+        .from("questions")
+        .delete()
+        .in("id", batch);
+      if (result.error) {
+        deleteError = result.error;
+        break;
+      }
+      deletedIds.push(...batch);
+    }
+  } catch (error) {
+    deleteError = error;
+  } finally {
+    deletedIds.forEach((questionId) => {
+      adminState.selectedQuestionIds.delete(questionId);
+    });
+    adminState.bulkDeleting = false;
+  }
+
+  if (
+    deletedIds.some(
+      (questionId) => adminElements.questionId.value === String(questionId),
+    )
+  ) {
+    resetQuestionForm();
+  }
+
+  await loadAdminData();
+
+  if (deleteError) {
+    console.error("Could not delete selected questions:", deleteError);
+    showAdminToast(
+      deletedIds.length > 0
+        ? `تم حذف ${deletedIds.length} سؤال وتعذّر حذف الباقي`
+        : "تعذّر حذف الأسئلة المحددة",
+    );
+    return;
+  }
+
+  clearQuestionSelection({ render: false });
+  renderQuestionList();
+  showAdminToast(`تم حذف ${deletedIds.length} سؤال`);
 }
 
 function slugify(value, fallbackPrefix) {
@@ -1220,6 +1394,7 @@ async function signOut() {
   adminState.topics = [];
   adminState.subtopics = [];
   adminState.questions = [];
+  adminState.selectedQuestionIds.clear();
   adminElements.dashboardView.classList.add("hidden");
   adminElements.loginView.classList.remove("hidden");
   adminElements.loginForm.reset();
@@ -1267,9 +1442,21 @@ adminElements.refreshData.addEventListener("click", () => loadAdminData({ notify
   adminElements.filterDifficulty,
   adminElements.filterStatus,
 ].forEach((element) => {
-  element.addEventListener("input", renderQuestionList);
-  element.addEventListener("change", renderQuestionList);
+  const handleFilterChange = () => {
+    clearQuestionSelection({ render: false });
+    renderQuestionList();
+  };
+  element.addEventListener("input", handleFilterChange);
+  element.addEventListener("change", handleFilterChange);
 });
+adminElements.selectAllQuestions.addEventListener("change", toggleSelectAllQuestions);
+adminElements.clearQuestionSelection.addEventListener("click", () =>
+  clearQuestionSelection(),
+);
+adminElements.deleteSelectedQuestions.addEventListener(
+  "click",
+  deleteSelectedQuestions,
+);
 adminElements.topicForm.addEventListener("submit", saveTopic);
 adminElements.resetTopic.addEventListener("click", resetTopicForm);
 adminElements.subtopicForm.addEventListener("submit", saveSubtopic);

@@ -302,6 +302,36 @@
                   </select>
                 </label>
               </div>
+              <div class="question-selection-toolbar">
+                <label class="question-select-all">
+                  <input id="select-all-questions" type="checkbox" />
+                  <span>
+                    <strong>تحديد الكل</strong>
+                    <small>كل النتائج الظاهرة</small>
+                  </span>
+                </label>
+                <div class="question-selection-actions">
+                  <span id="selected-questions-count" aria-live="polite">
+                    لم يتم تحديد أي سؤال
+                  </span>
+                  <button
+                    id="clear-question-selection"
+                    class="button button-ghost button-small"
+                    type="button"
+                    disabled
+                  >
+                    إلغاء التحديد
+                  </button>
+                  <button
+                    id="delete-selected-questions"
+                    class="button button-danger button-small"
+                    type="button"
+                    disabled
+                  >
+                    حذف المحدد
+                  </button>
+                </div>
+              </div>
               <div class="list-summary">
                 <span id="question-list-count">0 سؤال</span>
               </div>
