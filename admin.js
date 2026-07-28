@@ -7,6 +7,13 @@ const adminState = {
   subtopics: [],
   questions: [],
   loading: false,
+  moveFile: {
+    matches: [],
+    totalFileQuestions: 0,
+    unmatchedCount: 0,
+    ambiguousCount: 0,
+    duplicateFileCount: 0,
+  },
 };
 
 const adminElements = {
@@ -30,6 +37,21 @@ const adminElements = {
   newQuestion: document.querySelector("#new-question"),
   importQuestions: document.querySelector("#import-questions"),
   importFile: document.querySelector("#import-file"),
+  moveQuestionFile: document.querySelector("#move-question-file"),
+  moveQuestionsDialog: document.querySelector("#move-questions-dialog"),
+  moveQuestionsForm: document.querySelector("#move-questions-form"),
+  moveQuestionsFile: document.querySelector("#move-questions-file"),
+  moveFileSummary: document.querySelector("#move-file-summary"),
+  moveMatchedCount: document.querySelector("#move-matched-count"),
+  moveUnmatchedCount: document.querySelector("#move-unmatched-count"),
+  moveAmbiguousCount: document.querySelector("#move-ambiguous-count"),
+  moveDestinationTopic: document.querySelector("#move-destination-topic"),
+  moveNewTopicField: document.querySelector("#move-new-topic-field"),
+  moveNewTopicName: document.querySelector("#move-new-topic-name"),
+  moveQuestionsError: document.querySelector("#move-questions-error"),
+  closeMoveQuestions: document.querySelector("#close-move-questions"),
+  cancelMoveQuestions: document.querySelector("#cancel-move-questions"),
+  confirmMoveQuestions: document.querySelector("#confirm-move-questions"),
   exportQuestions: document.querySelector("#export-questions"),
   refreshData: document.querySelector("#refresh-data"),
   questionFormPanel: document.querySelector("#question-form-panel"),
@@ -169,7 +191,31 @@ function refreshSelects() {
     "",
   );
   setSelectOptions(adminElements.filterTopic, sortedTopics, "كل المواضيع", "all");
+  refreshMoveDestinationTopics(sortedTopics);
   refreshQuestionSubtopics();
+}
+
+function refreshMoveDestinationTopics(sortedTopics = adminState.topics) {
+  const previousValue = adminElements.moveDestinationTopic.value;
+  setSelectOptions(
+    adminElements.moveDestinationTopic,
+    sortedTopics,
+    "اختر القسم الجديد",
+    "",
+  );
+
+  const newTopicOption = document.createElement("option");
+  newTopicOption.value = "__new__";
+  newTopicOption.textContent = "+ إنشاء قسم جديد";
+  adminElements.moveDestinationTopic.append(newTopicOption);
+
+  if (
+    [...adminElements.moveDestinationTopic.options].some(
+      (option) => option.value === previousValue,
+    )
+  ) {
+    adminElements.moveDestinationTopic.value = previousValue;
+  }
 }
 
 function refreshQuestionSubtopics(selectedValue = null) {
@@ -744,6 +790,298 @@ async function ensureImportSubtopic(name, topicId, subtopicCache) {
   return result.data;
 }
 
+function emptyMoveFileState() {
+  return {
+    matches: [],
+    totalFileQuestions: 0,
+    unmatchedCount: 0,
+    ambiguousCount: 0,
+    duplicateFileCount: 0,
+  };
+}
+
+function updateMoveButtonState() {
+  if (adminElements.confirmMoveQuestions.dataset.busy === "true") return;
+  const destinationValue = adminElements.moveDestinationTopic.value;
+  const destinationReady =
+    Boolean(destinationValue) &&
+    (destinationValue !== "__new__" ||
+      Boolean(adminElements.moveNewTopicName.value.trim()));
+  adminElements.confirmMoveQuestions.disabled =
+    adminState.moveFile.matches.length === 0 || !destinationReady;
+}
+
+function handleMoveDestinationChange() {
+  const createsTopic = adminElements.moveDestinationTopic.value === "__new__";
+  adminElements.moveNewTopicField.classList.toggle("hidden", !createsTopic);
+  adminElements.moveNewTopicName.required = createsTopic;
+  if (!createsTopic) adminElements.moveNewTopicName.value = "";
+  updateMoveButtonState();
+}
+
+function resetMoveQuestionsForm() {
+  adminElements.moveQuestionsForm.reset();
+  adminState.moveFile = emptyMoveFileState();
+  adminElements.moveFileSummary.classList.add("hidden");
+  adminElements.moveMatchedCount.textContent = "0";
+  adminElements.moveUnmatchedCount.textContent = "0";
+  adminElements.moveAmbiguousCount.textContent = "0";
+  adminElements.moveNewTopicField.classList.add("hidden");
+  adminElements.moveNewTopicName.required = false;
+  adminElements.confirmMoveQuestions.dataset.busy = "false";
+  adminElements.confirmMoveQuestions.textContent = "نقل الأسئلة";
+  setFormError(adminElements.moveQuestionsError);
+  updateMoveButtonState();
+}
+
+function openMoveQuestionsDialog() {
+  refreshMoveDestinationTopics(
+    [...adminState.topics].sort(
+      (first, second) =>
+        Number(first.sort_order ?? 0) - Number(second.sort_order ?? 0) ||
+        first.name.localeCompare(second.name, "en"),
+    ),
+  );
+  resetMoveQuestionsForm();
+  if (typeof adminElements.moveQuestionsDialog.showModal === "function") {
+    adminElements.moveQuestionsDialog.showModal();
+  } else {
+    adminElements.moveQuestionsDialog.setAttribute("open", "");
+  }
+}
+
+function closeMoveQuestionsDialog() {
+  if (adminElements.confirmMoveQuestions.dataset.busy === "true") return;
+  if (typeof adminElements.moveQuestionsDialog.close === "function") {
+    adminElements.moveQuestionsDialog.close();
+  } else {
+    adminElements.moveQuestionsDialog.removeAttribute("open");
+  }
+  resetMoveQuestionsForm();
+}
+
+async function inspectMoveQuestionsFile() {
+  const [file] = adminElements.moveQuestionsFile.files;
+  adminState.moveFile = emptyMoveFileState();
+  adminElements.moveFileSummary.classList.add("hidden");
+  setFormError(adminElements.moveQuestionsError);
+  updateMoveButtonState();
+  if (!file) return;
+
+  try {
+    if (
+      !window.VetMasterImport?.parseQuestionFile ||
+      !window.VetMasterMove?.matchFileQuestions
+    ) {
+      throw new Error("أداة قراءة الملف غير متاحة. أعد تحميل الصفحة.");
+    }
+
+    const parsed = await window.VetMasterImport.parseQuestionFile(file, window.XLSX);
+    if (!parsed.length) throw new Error("الملف لا يحتوي أسئلة.");
+
+    adminState.moveFile = window.VetMasterMove.matchFileQuestions(
+      parsed,
+      adminState.questions,
+    );
+    adminElements.moveMatchedCount.textContent = String(
+      adminState.moveFile.matches.length,
+    );
+    adminElements.moveUnmatchedCount.textContent = String(
+      adminState.moveFile.unmatchedCount,
+    );
+    adminElements.moveAmbiguousCount.textContent = String(
+      adminState.moveFile.ambiguousCount +
+        adminState.moveFile.duplicateFileCount,
+    );
+    adminElements.moveFileSummary.classList.remove("hidden");
+
+    if (adminState.moveFile.matches.length === 0) {
+      setFormError(
+        adminElements.moveQuestionsError,
+        "لم يتم العثور على أي سؤال من هذا الملف داخل بنك الأسئلة.",
+      );
+    }
+  } catch (error) {
+    console.error("Could not inspect move file:", error);
+    adminState.moveFile = emptyMoveFileState();
+    setFormError(
+      adminElements.moveQuestionsError,
+      `تعذّرت قراءة الملف: ${error.message ?? "ملف غير صالح"}`,
+    );
+  } finally {
+    updateMoveButtonState();
+  }
+}
+
+function chunkItems(items, chunkSize = 100) {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+async function updateMovedQuestionChunk(questions, payload) {
+  const result = await adminState.db
+    .from("questions")
+    .update(payload)
+    .in(
+      "id",
+      questions.map((question) => question.id),
+    );
+  if (result.error) throw result.error;
+}
+
+async function rollbackMovedQuestions(questions) {
+  const originalGroups = new Map();
+  questions.forEach((question) => {
+    const key = `${question.topic_id}:${question.subtopic_id ?? ""}`;
+    const group = originalGroups.get(key) ?? {
+      topicId: question.topic_id,
+      subtopicId: question.subtopic_id ?? null,
+      questions: [],
+    };
+    group.questions.push(question);
+    originalGroups.set(key, group);
+  });
+
+  try {
+    for (const group of originalGroups.values()) {
+      for (const chunk of chunkItems(group.questions)) {
+        await updateMovedQuestionChunk(chunk, {
+          topic_id: group.topicId,
+          subtopic_id: group.subtopicId,
+        });
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error("Could not roll back moved questions:", error);
+    return false;
+  }
+}
+
+function moveFileSubtopicName(fileQuestion) {
+  return String(
+    fileQuestion?.subtopic_name ??
+      fileQuestion?.subtopic ??
+      fileQuestion?.disease ??
+      "",
+  ).trim();
+}
+
+function setMoveQuestionsBusy(isBusy) {
+  adminElements.confirmMoveQuestions.dataset.busy = String(isBusy);
+  adminElements.moveQuestionsFile.disabled = isBusy;
+  adminElements.moveDestinationTopic.disabled = isBusy;
+  adminElements.moveNewTopicName.disabled = isBusy;
+  adminElements.closeMoveQuestions.disabled = isBusy;
+  adminElements.cancelMoveQuestions.disabled = isBusy;
+  adminElements.confirmMoveQuestions.textContent = isBusy
+    ? "جاري النقل..."
+    : "نقل الأسئلة";
+  if (isBusy) {
+    adminElements.confirmMoveQuestions.disabled = true;
+  } else {
+    updateMoveButtonState();
+  }
+}
+
+async function moveQuestionsFromFile(event) {
+  event.preventDefault();
+  setFormError(adminElements.moveQuestionsError);
+
+  const matches = adminState.moveFile.matches;
+  const destinationValue = adminElements.moveDestinationTopic.value;
+  const selectedTopic =
+    destinationValue === "__new__" ? null : topicById(destinationValue);
+  const destinationName =
+    destinationValue === "__new__"
+      ? adminElements.moveNewTopicName.value.trim()
+      : selectedTopic?.name ?? "";
+
+  if (!matches.length || !destinationName) {
+    setFormError(
+      adminElements.moveQuestionsError,
+      "اختر الملف والقسم الجديد قبل النقل.",
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `سيتم نقل ${matches.length} سؤال إلى قسم "${destinationName}". هل تريد المتابعة؟`,
+  );
+  if (!confirmed) return;
+
+  setMoveQuestionsBusy(true);
+  const movedQuestions = [];
+
+  try {
+    const topicCache = new Map(
+      adminState.topics.map((topic) => [topic.name.trim().toLowerCase(), topic]),
+    );
+    const destinationTopic =
+      selectedTopic ?? (await ensureImportTopic(destinationName, topicCache));
+    const subtopicCache = new Map(
+      adminState.subtopics.map((subtopic) => [
+        `${subtopic.topic_id}:${subtopic.name.trim().toLowerCase()}`,
+        subtopic,
+      ]),
+    );
+    const destinationGroups = new Map();
+
+    for (const match of matches) {
+      const currentSubtopic = subtopicById(match.question.subtopic_id);
+      const subtopicName =
+        currentSubtopic?.name ?? moveFileSubtopicName(match.fileQuestion);
+      let destinationSubtopicId = null;
+
+      if (subtopicName) {
+        const destinationSubtopic = await ensureImportSubtopic(
+          subtopicName,
+          destinationTopic.id,
+          subtopicCache,
+        );
+        destinationSubtopicId = destinationSubtopic.id;
+      }
+
+      const groupKey = destinationSubtopicId ?? "__none__";
+      const group = destinationGroups.get(groupKey) ?? {
+        subtopicId: destinationSubtopicId,
+        questions: [],
+      };
+      group.questions.push(match.question);
+      destinationGroups.set(groupKey, group);
+    }
+
+    for (const group of destinationGroups.values()) {
+      for (const chunk of chunkItems(group.questions)) {
+        await updateMovedQuestionChunk(chunk, {
+          topic_id: destinationTopic.id,
+          subtopic_id: group.subtopicId,
+        });
+        movedQuestions.push(...chunk);
+      }
+    }
+
+    await loadAdminData();
+    setMoveQuestionsBusy(false);
+    closeMoveQuestionsDialog();
+    showAdminToast(`تم نقل ${matches.length} سؤال إلى ${destinationTopic.name}`);
+  } catch (error) {
+    console.error("Could not move question file:", error);
+    const rolledBack =
+      movedQuestions.length === 0 || (await rollbackMovedQuestions(movedQuestions));
+    setFormError(
+      adminElements.moveQuestionsError,
+      rolledBack
+        ? `تعذّر النقل ولم تتغيّر الأسئلة: ${error.message ?? "خطأ غير معروف"}`
+        : "توقف النقل قبل اكتماله وتعذّر التراجع تلقائيًا. حدّث البيانات وتحقق من الأقسام.",
+    );
+    setMoveQuestionsBusy(false);
+  }
+}
+
 async function importQuestionBank(file) {
   adminElements.importQuestions.disabled = true;
   adminElements.importQuestions.textContent = "جاري الاستيراد...";
@@ -943,6 +1281,23 @@ adminElements.importQuestions.addEventListener("click", () =>
 adminElements.importFile.addEventListener("change", () => {
   const [file] = adminElements.importFile.files;
   if (file) importQuestionBank(file);
+});
+adminElements.moveQuestionFile.addEventListener("click", openMoveQuestionsDialog);
+adminElements.moveQuestionsFile.addEventListener("change", inspectMoveQuestionsFile);
+adminElements.moveDestinationTopic.addEventListener(
+  "change",
+  handleMoveDestinationChange,
+);
+adminElements.moveNewTopicName.addEventListener("input", updateMoveButtonState);
+adminElements.moveQuestionsForm.addEventListener("submit", moveQuestionsFromFile);
+adminElements.closeMoveQuestions.addEventListener("click", closeMoveQuestionsDialog);
+adminElements.cancelMoveQuestions.addEventListener("click", closeMoveQuestionsDialog);
+adminElements.moveQuestionsDialog.addEventListener("cancel", (event) => {
+  if (adminElements.confirmMoveQuestions.dataset.busy === "true") {
+    event.preventDefault();
+    return;
+  }
+  resetMoveQuestionsForm();
 });
 
 initializeAdmin();

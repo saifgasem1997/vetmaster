@@ -15,6 +15,7 @@
     ></script>
     <script src="supabase-config.js"></script>
     <script src="question-import.js" defer></script>
+    <script src="question-move.js" defer></script>
     <script src="admin.js" defer></script>
   </head>
   <body class="admin-body">
@@ -129,6 +130,9 @@
               </button>
               <button id="import-questions" class="button button-secondary" type="button">
                 استيراد Excel
+              </button>
+              <button id="move-question-file" class="button button-secondary" type="button">
+                نقل ملف أسئلة
               </button>
               <input
                 id="import-file"
@@ -391,6 +395,90 @@
           </p>
         </section>
       </section>
+
+      <dialog id="move-questions-dialog" class="admin-dialog">
+        <form id="move-questions-form" class="move-questions-card">
+          <div class="move-dialog-heading">
+            <div>
+              <span class="card-kicker">نقل جماعي آمن</span>
+              <h2>نقل ملف بأسئلته</h2>
+            </div>
+            <button
+              id="close-move-questions"
+              class="dialog-close"
+              type="button"
+              aria-label="إغلاق"
+            >
+              ×
+            </button>
+          </div>
+
+          <p class="move-dialog-intro">
+            اختر ملف Excel الأصلي؛ سيتم العثور على أسئلته الموجودة في البنك فقط.
+          </p>
+
+          <label class="admin-field move-file-field">
+            <span>ملف الأسئلة *</span>
+            <input
+              id="move-questions-file"
+              type="file"
+              required
+              accept=".xlsx,.xls,.csv,.tsv,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/json"
+            />
+          </label>
+
+          <div id="move-file-summary" class="move-match-summary hidden" aria-live="polite">
+            <div>
+              <strong id="move-matched-count">0</strong>
+              <span>سؤال مطابق</span>
+            </div>
+            <div>
+              <strong id="move-unmatched-count">0</strong>
+              <span>غير موجود</span>
+            </div>
+            <div>
+              <strong id="move-ambiguous-count">0</strong>
+              <span>مكرر ومُستبعد</span>
+            </div>
+          </div>
+
+          <label class="admin-field">
+            <span>القسم الجديد *</span>
+            <select id="move-destination-topic" required>
+              <option value="">اختر القسم الجديد</option>
+            </select>
+          </label>
+
+          <label id="move-new-topic-field" class="admin-field hidden">
+            <span>اسم القسم الجديد *</span>
+            <input
+              id="move-new-topic-name"
+              type="text"
+              dir="ltr"
+              placeholder="Cattle Diseases"
+            />
+          </label>
+
+          <p class="move-safety-note">
+            تنتقل الأمراض الفرعية بنفس أسمائها، ولا يتغيّر أي سؤال غير موجود في الملف.
+          </p>
+          <p id="move-questions-error" class="form-error hidden" role="alert"></p>
+
+          <div class="move-dialog-actions">
+            <button id="cancel-move-questions" class="button button-ghost" type="button">
+              إلغاء
+            </button>
+            <button
+              id="confirm-move-questions"
+              class="button button-primary"
+              type="submit"
+              disabled
+            >
+              نقل الأسئلة
+            </button>
+          </div>
+        </form>
+      </dialog>
 
       <section id="admin-error-view" class="login-view hidden">
         <div class="login-card">
