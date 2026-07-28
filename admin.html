@@ -9,7 +9,12 @@
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="admin.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script
+      src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"
+      defer
+    ></script>
     <script src="supabase-config.js"></script>
+    <script src="question-import.js" defer></script>
     <script src="admin.js" defer></script>
   </head>
   <body class="admin-body">
@@ -123,9 +128,21 @@
                 + سؤال جديد
               </button>
               <button id="import-questions" class="button button-secondary" type="button">
-                استيراد JSON
+                استيراد Excel
               </button>
-              <input id="import-file" class="hidden" type="file" accept=".json,application/json" />
+              <input
+                id="import-file"
+                class="hidden"
+                type="file"
+                accept=".xlsx,.xls,.csv,.tsv,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/json"
+              />
+              <a
+                class="button button-ghost"
+                href="vetmaster-question-template.xlsx"
+                download
+              >
+                تحميل نموذج Excel
+              </a>
               <button id="export-questions" class="button button-ghost" type="button">
                 تصدير JSON
               </button>

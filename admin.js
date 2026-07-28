@@ -749,8 +749,11 @@ async function importQuestionBank(file) {
   adminElements.importQuestions.textContent = "جاري الاستيراد...";
 
   try {
-    const parsed = JSON.parse(await file.text());
-    if (!Array.isArray(parsed)) throw new Error("ملف JSON يجب أن يحتوي قائمة أسئلة.");
+    if (!window.VetMasterImport?.parseQuestionFile) {
+      throw new Error("أداة قراءة الملفات غير متاحة. أعد تحميل الصفحة.");
+    }
+    const parsed = await window.VetMasterImport.parseQuestionFile(file, window.XLSX);
+    if (!parsed.length) throw new Error("الملف لا يحتوي أسئلة.");
 
     const topicCache = new Map(
       adminState.topics.map((topic) => [topic.name.trim().toLowerCase(), topic]),
@@ -834,7 +837,7 @@ async function importQuestionBank(file) {
     showAdminToast(`فشل الاستيراد: ${error.message ?? "ملف غير صالح"}`);
   } finally {
     adminElements.importQuestions.disabled = false;
-    adminElements.importQuestions.textContent = "استيراد JSON";
+    adminElements.importQuestions.textContent = "استيراد Excel";
     adminElements.importFile.value = "";
   }
 }
