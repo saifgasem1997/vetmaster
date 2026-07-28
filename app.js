@@ -934,6 +934,7 @@ function updateAnswerStatus() {
 
 function renderQuestionNavigator() {
   elements.questionNavigator.replaceChildren();
+  let activeButton = null;
   state.questions.forEach((question, index) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -941,14 +942,56 @@ function renderQuestionNavigator() {
     button.className = "navigator-button";
     if (state.answers[index] !== null) button.classList.add("answered");
     if (state.flags.has(question.id)) button.classList.add("flagged");
-    if (index === state.currentIndex) button.classList.add("active");
+    if (index === state.currentIndex) {
+      button.classList.add("active");
+      activeButton = button;
+    }
     button.setAttribute("aria-label", `الانتقال إلى السؤال ${index + 1}`);
     button.addEventListener("click", () => {
       state.currentIndex = index;
       renderQuestion();
+      scrollCurrentQuestionIntoView();
       saveDraft();
     });
     elements.questionNavigator.append(button);
+  });
+
+  if (activeButton) {
+    requestAnimationFrame(() => {
+      if (!activeButton.isConnected) return;
+      const navigatorRect = elements.questionNavigator.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      const scrollPadding = 8;
+
+      if (buttonRect.top < navigatorRect.top) {
+        elements.questionNavigator.scrollTop -=
+          navigatorRect.top - buttonRect.top + scrollPadding;
+      } else if (buttonRect.bottom > navigatorRect.bottom) {
+        elements.questionNavigator.scrollTop +=
+          buttonRect.bottom - navigatorRect.bottom + scrollPadding;
+      }
+    });
+  }
+}
+
+function scrollCurrentQuestionIntoView() {
+  const questionCard = elements.questionText.closest(".question-card");
+  if (!questionCard) return;
+
+  requestAnimationFrame(() => {
+    const cardRect = questionCard.getBoundingClientRect();
+    const actionBarSpace = 118;
+    const isQuestionStartVisible =
+      cardRect.top >= 12 && cardRect.top < window.innerHeight - actionBarSpace;
+
+    if (isQuestionStartVisible) return;
+
+    questionCard.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start",
+    });
   });
 }
 
@@ -956,6 +999,7 @@ function goToPreviousQuestion() {
   if (state.currentIndex === 0) return;
   state.currentIndex -= 1;
   renderQuestion();
+  scrollCurrentQuestionIntoView();
   saveDraft();
 }
 
@@ -979,6 +1023,7 @@ function goToNextQuestion() {
   }
   state.currentIndex += 1;
   renderQuestion();
+  scrollCurrentQuestionIntoView();
   saveDraft();
 }
 

@@ -2158,3 +2158,108 @@ input[type="number"]:focus-visible {
     font-size: 30px;
   }
 }
+
+/* Keep long exams compact and navigation controls within reach. */
+
+.navigator-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+
+.navigator-heading,
+.navigator-legend {
+  flex: 0 0 auto;
+}
+
+.question-navigator {
+  min-height: 0;
+  max-height: calc(100dvh - 205px);
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(18, 61, 58, 0.38) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.question-navigator::-webkit-scrollbar {
+  width: 7px;
+}
+
+.question-navigator::-webkit-scrollbar-thumb {
+  background: rgba(18, 61, 58, 0.34);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.quiz-shell-wide {
+  padding-bottom: 150px;
+}
+
+#quiz-screen.active .quiz-actions {
+  position: fixed;
+  z-index: 8;
+  right: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  width: min(760px, calc(100vw - 32px));
+  margin: 0;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(18, 61, 58, 0.13);
+  border-radius: 18px;
+  box-shadow: 0 16px 44px rgba(9, 38, 35, 0.2);
+  backdrop-filter: blur(16px);
+  transform: translateX(50%);
+}
+
+@media (max-width: 960px) {
+  .navigator-panel {
+    max-height: 280px;
+  }
+
+  .question-navigator {
+    max-height: 156px;
+  }
+
+  .navigator-legend {
+    grid-template-columns: repeat(3, auto);
+    justify-content: center;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 760px) {
+  .question-navigator {
+    max-height: 176px;
+  }
+}
+
+@media (max-width: 640px) {
+  .navigator-panel {
+    max-height: 250px;
+    padding: 14px;
+  }
+
+  .question-navigator {
+    max-height: 150px;
+  }
+
+  .navigator-legend {
+    gap: 8px;
+    font-size: 8px;
+  }
+
+  .quiz-shell-wide {
+    padding-bottom: 180px;
+  }
+
+  #quiz-screen.active .quiz-actions {
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    padding: 10px;
+    border-radius: 15px;
+  }
+}
