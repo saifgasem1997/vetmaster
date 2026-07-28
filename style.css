@@ -2195,24 +2195,12 @@ input[type="number"]:focus-visible {
   background-clip: padding-box;
 }
 
-.quiz-shell-wide {
-  padding-bottom: 150px;
-}
-
 #quiz-screen.active .quiz-actions {
-  position: fixed;
-  z-index: 8;
-  right: 50%;
-  bottom: max(14px, env(safe-area-inset-bottom));
-  width: min(760px, calc(100vw - 32px));
-  margin: 0;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(18, 61, 58, 0.13);
-  border-radius: 18px;
-  box-shadow: 0 16px 44px rgba(9, 38, 35, 0.2);
-  backdrop-filter: blur(16px);
-  transform: translateX(50%);
+  position: static;
+  width: 100%;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
 }
 
 @media (max-width: 960px) {
@@ -2252,14 +2240,8 @@ input[type="number"]:focus-visible {
     font-size: 8px;
   }
 
-  .quiz-shell-wide {
-    padding-bottom: 180px;
-  }
-
   #quiz-screen.active .quiz-actions {
-    bottom: max(8px, env(safe-area-inset-bottom));
-    width: calc(100vw - 20px);
-    padding: 10px;
-    border-radius: 15px;
+    margin-top: 22px;
+    padding-top: 16px;
   }
 }
