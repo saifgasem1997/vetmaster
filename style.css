@@ -1544,6 +1544,10 @@ input[type="number"]:focus-visible {
   border-radius: 16px;
 }
 
+.topic-group.has-species-folders {
+  grid-column: 1 / -1;
+}
+
 .topic-heading {
   display: flex;
   gap: 11px;
@@ -1570,6 +1574,7 @@ input[type="number"]:focus-visible {
 }
 
 .topic-heading input,
+.species-heading input,
 .subtopic-list input {
   width: 17px;
   height: 17px;
@@ -1606,6 +1611,87 @@ input[type="number"]:focus-visible {
   font-size: 10px;
 }
 
+.topic-content.collapsed {
+  display: none;
+}
+
+.topic-group.has-species-folders .topic-content {
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+  background: #f7faf9;
+}
+
+.topic-group.has-species-folders .topic-content.collapsed {
+  display: none;
+}
+
+.species-group {
+  min-width: 0;
+}
+
+.topic-group.has-species-folders .species-group {
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+}
+
+.species-heading {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 12px;
+  background: rgba(220, 238, 234, 0.25);
+}
+
+.species-selector {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.species-selector > span {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.species-selector strong {
+  overflow: hidden;
+  color: var(--forest);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: ltr;
+}
+
+.species-selector small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.species-toggle {
+  width: 29px;
+  height: 29px;
+  color: var(--teal);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: transform 160ms ease;
+}
+
+.species-toggle.open {
+  transform: rotate(180deg);
+}
+
 .subtopic-list {
   display: flex;
   flex-wrap: wrap;
@@ -1615,6 +1701,10 @@ input[type="number"]:focus-visible {
 
 .subtopic-list.collapsed {
   display: none;
+}
+
+.topic-group.has-species-folders .subtopic-list {
+  border-top: 1px solid var(--line);
 }
 
 .subtopic-list label {
@@ -1646,6 +1736,7 @@ input[type="number"]:focus-visible {
 }
 
 .subtopic-list label[hidden],
+.species-group[hidden],
 .topic-group[hidden] {
   display: none;
 }

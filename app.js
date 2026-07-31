@@ -466,29 +466,148 @@ function resumeSavedExam() {
   showToast("رجعناك لنفس مكانك 👌");
 }
 
+const BACTERIAL_CATALOG_TOPIC = {
+  id: "catalog-bacterial-diseases",
+  name: "Bacterial Diseases",
+};
+
+const BACTERIAL_SPECIES = [
+  {
+    id: "cattle-diseases",
+    name: "Cattle Diseases",
+    pattern: /bovine|cattle/i,
+  },
+  {
+    id: "equine-diseases",
+    name: "Equine Diseases",
+    pattern: /equine|horse/i,
+  },
+  {
+    id: "sheep-goat-diseases",
+    name: "Sheep & Goat Diseases",
+    pattern: /sheep|goat|small\s+ruminant/i,
+  },
+];
+
+function getCatalogPath(question) {
+  const taxonomyText = `${question.topicName} ${question.sourceNote}`;
+  const species = BACTERIAL_SPECIES.find((entry) => entry.pattern.test(taxonomyText));
+  const isBacterial =
+    /bacterial/i.test(taxonomyText) ||
+    /^(cattle|equine|sheep\s*&\s*goat) diseases$/i.test(question.topicName);
+
+  if (isBacterial) {
+    return {
+      topicId: BACTERIAL_CATALOG_TOPIC.id,
+      topicName: BACTERIAL_CATALOG_TOPIC.name,
+      speciesId: species?.id ?? "general-bacterial-diseases",
+      speciesName: species?.name ?? "General Bacterial Diseases",
+      hasSpeciesFolders: true,
+    };
+  }
+
+  return {
+    topicId: question.topicId,
+    topicName: question.topicName,
+    speciesId: `direct-${question.topicId}`,
+    speciesName: "",
+    hasSpeciesFolders: false,
+  };
+}
+
 function buildCatalog(questions) {
   const topics = new Map();
   questions.forEach((question) => {
-    if (!topics.has(question.topicId)) {
-      topics.set(question.topicId, {
-        id: question.topicId,
-        name: question.topicName,
-        subtopics: new Map(),
+    const path = getCatalogPath(question);
+    if (!topics.has(path.topicId)) {
+      topics.set(path.topicId, {
+        id: path.topicId,
+        name: path.topicName,
+        hasSpeciesFolders: path.hasSpeciesFolders,
+        speciesGroups: new Map(),
+        questions: [],
       });
     }
-    const topic = topics.get(question.topicId);
-    if (!topic.subtopics.has(question.subtopicId)) {
-      topic.subtopics.set(question.subtopicId, {
+
+    const topic = topics.get(path.topicId);
+    topic.questions.push(question);
+    topic.hasSpeciesFolders ||= path.hasSpeciesFolders;
+    if (!topic.speciesGroups.has(path.speciesId)) {
+      topic.speciesGroups.set(path.speciesId, {
+        id: path.speciesId,
+        name: path.speciesName,
+        subtopics: new Map(),
+        questions: [],
+      });
+    }
+
+    const speciesGroup = topic.speciesGroups.get(path.speciesId);
+    speciesGroup.questions.push(question);
+    if (!speciesGroup.subtopics.has(question.subtopicId)) {
+      speciesGroup.subtopics.set(question.subtopicId, {
         id: question.subtopicId,
         name: question.subtopicName,
         questions: [],
       });
     }
-    topic.subtopics.get(question.subtopicId).questions.push(question);
+    speciesGroup.subtopics.get(question.subtopicId).questions.push(question);
   });
-  return [...topics.values()].sort((first, second) =>
-    first.name.localeCompare(second.name, "en"),
+
+  return [...topics.values()].sort((first, second) => {
+    if (first.id === BACTERIAL_CATALOG_TOPIC.id) return -1;
+    if (second.id === BACTERIAL_CATALOG_TOPIC.id) return 1;
+    return first.name.localeCompare(second.name, "en");
+  });
+}
+
+function updateParentCheckbox(parentInput, childInputs) {
+  const selectedCount = childInputs.filter((input) => input.checked).length;
+  parentInput.checked = selectedCount > 0;
+  parentInput.indeterminate = selectedCount > 0 && selectedCount < childInputs.length;
+}
+
+function syncSpeciesSelection(speciesGroup) {
+  const speciesInput = speciesGroup.querySelector(".species-check");
+  if (!speciesInput) return;
+  updateParentCheckbox(
+    speciesInput,
+    [...speciesGroup.querySelectorAll(".subtopic-check")],
   );
+}
+
+function syncTopicSelection(topicGroup) {
+  topicGroup.querySelectorAll(".species-group").forEach(syncSpeciesSelection);
+  updateParentCheckbox(
+    topicGroup.querySelector(".topic-check"),
+    [...topicGroup.querySelectorAll(".subtopic-check")],
+  );
+}
+
+function createSubtopicLabel(topic, speciesGroup, subtopic) {
+  const label = document.createElement("label");
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = true;
+  input.className = "subtopic-check";
+  input.dataset.topicId = topic.id;
+  input.dataset.speciesId = speciesGroup.id;
+  input.value = subtopic.id;
+
+  const priorities = subtopic.questions.map((question) =>
+    Math.min(5, Math.max(1, Number(question.priority) || 3)),
+  );
+  const importance = Math.max(...priorities);
+  label.dataset.importance = String(importance);
+  label.dataset.searchText = `${topic.name} ${speciesGroup.name} ${subtopic.name}`.toLocaleLowerCase();
+
+  const text = document.createElement("span");
+  text.textContent = subtopic.name;
+  const meta = document.createElement("small");
+  meta.className = "subtopic-meta";
+  meta.setAttribute("aria-label", `الأهمية ${importance} من 5`);
+  meta.textContent = `${"★".repeat(importance)}${"☆".repeat(5 - importance)} · ${subtopic.questions.length}`;
+  label.append(input, text, meta);
+  return label;
 }
 
 function renderTopicOptions(questions) {
@@ -508,6 +627,7 @@ function renderTopicOptions(questions) {
     const group = document.createElement("article");
     group.className = "topic-group";
     group.dataset.searchText = topic.name.toLocaleLowerCase();
+    group.classList.toggle("has-species-folders", topic.hasSpeciesFolders);
 
     const heading = document.createElement("div");
     heading.className = "topic-heading";
@@ -525,8 +645,7 @@ function renderTopicOptions(questions) {
     const topicName = document.createElement("strong");
     topicName.textContent = topic.name;
     const topicCount = document.createElement("small");
-    const count = questions.filter((question) => question.topicId === topic.id).length;
-    topicCount.textContent = `${count} سؤال`;
+    topicCount.textContent = `${topic.questions.length} سؤال`;
     topicCopy.append(topicName, topicCount);
 
     const topicToggle = document.createElement("button");
@@ -539,55 +658,93 @@ function renderTopicOptions(questions) {
     heading.append(topicSelector, topicToggle);
     group.append(heading);
 
-    const subtopicList = document.createElement("div");
-    subtopicList.className = "subtopic-list collapsed";
-    [...topic.subtopics.values()]
+    const topicContent = document.createElement("div");
+    topicContent.className = "topic-content collapsed";
+
+    [...topic.speciesGroups.values()]
       .sort((first, second) => first.name.localeCompare(second.name, "en"))
-      .forEach((subtopic) => {
-        const label = document.createElement("label");
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.checked = true;
-        input.className = "subtopic-check";
-        input.dataset.topicId = topic.id;
-        input.value = subtopic.id;
-        const priorities = subtopic.questions.map((question) =>
-          Math.min(5, Math.max(1, Number(question.priority) || 3)),
-        );
-        const importance = Math.max(...priorities);
-        label.dataset.importance = String(importance);
-        label.dataset.searchText = `${topic.name} ${subtopic.name}`.toLocaleLowerCase();
-        const text = document.createElement("span");
-        text.textContent = subtopic.name;
-        const meta = document.createElement("small");
-        meta.className = "subtopic-meta";
-        meta.setAttribute("aria-label", `الأهمية ${importance} من 5`);
-        meta.textContent = `${"★".repeat(importance)}${"☆".repeat(5 - importance)} · ${subtopic.questions.length}`;
-        label.append(input, text, meta);
-        subtopicList.append(label);
+      .forEach((speciesGroup) => {
+        const speciesWrap = document.createElement("section");
+        speciesWrap.className = "species-group";
+        speciesWrap.dataset.searchText = `${topic.name} ${speciesGroup.name}`.toLocaleLowerCase();
+
+        const subtopicList = document.createElement("div");
+        subtopicList.className = "subtopic-list";
+        [...speciesGroup.subtopics.values()]
+          .sort((first, second) => first.name.localeCompare(second.name, "en"))
+          .forEach((subtopic) => {
+            subtopicList.append(createSubtopicLabel(topic, speciesGroup, subtopic));
+          });
+
+        if (topic.hasSpeciesFolders) {
+          const speciesHeading = document.createElement("div");
+          speciesHeading.className = "species-heading";
+          const speciesSelector = document.createElement("label");
+          speciesSelector.className = "species-selector";
+          const speciesInput = document.createElement("input");
+          speciesInput.type = "checkbox";
+          speciesInput.checked = true;
+          speciesInput.className = "species-check";
+          speciesInput.dataset.speciesId = speciesGroup.id;
+          const speciesCopy = document.createElement("span");
+          const speciesName = document.createElement("strong");
+          speciesName.textContent = speciesGroup.name;
+          const speciesCount = document.createElement("small");
+          speciesCount.textContent = `${speciesGroup.questions.length} سؤال`;
+          speciesCopy.append(speciesName, speciesCount);
+          speciesSelector.append(speciesInput, speciesCopy);
+
+          const speciesToggle = document.createElement("button");
+          speciesToggle.type = "button";
+          speciesToggle.className = "species-toggle";
+          speciesToggle.setAttribute("aria-expanded", "false");
+          speciesToggle.setAttribute("aria-label", `عرض أمراض ${speciesGroup.name}`);
+          speciesToggle.textContent = "⌄";
+          subtopicList.classList.add("collapsed");
+          speciesHeading.append(speciesSelector, speciesToggle);
+          speciesWrap.append(speciesHeading, subtopicList);
+
+          speciesToggle.addEventListener("click", () => {
+            const isCollapsed = subtopicList.classList.toggle("collapsed");
+            speciesToggle.setAttribute("aria-expanded", String(!isCollapsed));
+            speciesToggle.classList.toggle("open", !isCollapsed);
+          });
+
+          speciesInput.addEventListener("change", () => {
+            subtopicList.querySelectorAll(".subtopic-check").forEach((input) => {
+              input.checked = speciesInput.checked;
+            });
+            speciesInput.indeterminate = false;
+            syncTopicSelection(group);
+            updateAvailableCount();
+          });
+        } else {
+          speciesWrap.classList.add("direct-subtopics");
+          speciesWrap.append(subtopicList);
+        }
+
+        subtopicList.addEventListener("change", () => {
+          syncSpeciesSelection(speciesWrap);
+          syncTopicSelection(group);
+          updateAvailableCount();
+        });
+        topicContent.append(speciesWrap);
       });
-    group.append(subtopicList);
+    group.append(topicContent);
     elements.topicOptions.append(group);
 
     topicToggle.addEventListener("click", () => {
-      const isCollapsed = subtopicList.classList.toggle("collapsed");
+      const isCollapsed = topicContent.classList.toggle("collapsed");
       topicToggle.setAttribute("aria-expanded", String(!isCollapsed));
       topicToggle.classList.toggle("open", !isCollapsed);
     });
 
     topicInput.addEventListener("change", () => {
-      subtopicList.querySelectorAll(".subtopic-check").forEach((input) => {
+      topicContent.querySelectorAll(".subtopic-check, .species-check").forEach((input) => {
         input.checked = topicInput.checked;
+        input.indeterminate = false;
       });
       topicInput.indeterminate = false;
-      updateAvailableCount();
-    });
-
-    subtopicList.addEventListener("change", () => {
-      const inputs = [...subtopicList.querySelectorAll(".subtopic-check")];
-      const selectedCount = inputs.filter((input) => input.checked).length;
-      topicInput.checked = selectedCount > 0;
-      topicInput.indeterminate = selectedCount > 0 && selectedCount < inputs.length;
       updateAvailableCount();
     });
   });
@@ -631,15 +788,28 @@ function updateAvailableCount() {
 function filterTopicOptions(query = "") {
   const normalizedQuery = query.trim().toLocaleLowerCase();
   elements.topicOptions.querySelectorAll(".topic-group").forEach((group) => {
-    let visibleSubtopics = 0;
-    group.querySelectorAll(".subtopic-list label").forEach((label) => {
-      const matches = !normalizedQuery || label.dataset.searchText.includes(normalizedQuery);
-      label.hidden = !matches;
-      if (matches) visibleSubtopics += 1;
+    const topicMatches = group.dataset.searchText.includes(normalizedQuery);
+    let visibleSpecies = 0;
+    group.querySelectorAll(".species-group").forEach((speciesGroup) => {
+      const speciesMatches = speciesGroup.dataset.searchText.includes(normalizedQuery);
+      let visibleSubtopics = 0;
+      speciesGroup.querySelectorAll(".subtopic-list label").forEach((label) => {
+        const matches =
+          !normalizedQuery || topicMatches || speciesMatches || label.dataset.searchText.includes(normalizedQuery);
+        label.hidden = !matches;
+        if (matches) visibleSubtopics += 1;
+      });
+      speciesGroup.hidden = visibleSubtopics === 0;
+      if (visibleSubtopics > 0) visibleSpecies += 1;
+      if (normalizedQuery && visibleSubtopics > 0) {
+        speciesGroup.querySelector(".subtopic-list")?.classList.remove("collapsed");
+        speciesGroup.querySelector(".species-toggle")?.classList.add("open");
+        speciesGroup.querySelector(".species-toggle")?.setAttribute("aria-expanded", "true");
+      }
     });
-    group.hidden = visibleSubtopics === 0;
-    if (normalizedQuery && visibleSubtopics > 0) {
-      group.querySelector(".subtopic-list").classList.remove("collapsed");
+    group.hidden = visibleSpecies === 0;
+    if (normalizedQuery && visibleSpecies > 0) {
+      group.querySelector(".topic-content").classList.remove("collapsed");
       group.querySelector(".topic-toggle").classList.add("open");
       group.querySelector(".topic-toggle").setAttribute("aria-expanded", "true");
     }
@@ -650,13 +820,7 @@ function selectImportantTopics() {
   elements.topicOptions.querySelectorAll(".subtopic-list label").forEach((label) => {
     label.querySelector(".subtopic-check").checked = Number(label.dataset.importance) === 5;
   });
-  elements.topicOptions.querySelectorAll(".topic-group").forEach((group) => {
-    const topicInput = group.querySelector(".topic-check");
-    const inputs = [...group.querySelectorAll(".subtopic-check")];
-    const selectedCount = inputs.filter((input) => input.checked).length;
-    topicInput.checked = selectedCount > 0;
-    topicInput.indeterminate = selectedCount > 0 && selectedCount < inputs.length;
-  });
+  elements.topicOptions.querySelectorAll(".topic-group").forEach(syncTopicSelection);
   updateAvailableCount();
 }
 
@@ -905,8 +1069,11 @@ function renderQuestion() {
 
   elements.quizMode.textContent = getQuizModeLabel();
   elements.questionCounter.textContent = `السؤال ${questionNumber} من ${totalQuestions}`;
-  elements.questionCategory.textContent = question.topicName;
-  elements.questionSubtopic.textContent = question.subtopicName;
+  const catalogPath = getCatalogPath(question);
+  elements.questionCategory.textContent = catalogPath.topicName;
+  elements.questionSubtopic.textContent = catalogPath.hasSpeciesFolders
+    ? `${catalogPath.speciesName} • ${question.subtopicName}`
+    : question.subtopicName;
   elements.questionNumberMark.textContent = String(questionNumber).padStart(2, "0");
   elements.questionText.textContent = question.question;
   elements.progressTrack.setAttribute("aria-valuenow", String(questionNumber));
