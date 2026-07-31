@@ -20,11 +20,13 @@ create table if not exists public.subtopics (
   name text not null,
   slug text not null,
   description text,
+  importance integer not null default 3,
   sort_order integer not null default 0,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (topic_id, slug)
+  unique (topic_id, slug),
+  constraint subtopics_importance_check check (importance between 1 and 5)
 );
 
 create table if not exists public.questions (

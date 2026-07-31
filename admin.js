@@ -101,6 +101,7 @@ const adminElements = {
   subtopicName: document.querySelector("#subtopic-name"),
   subtopicSlug: document.querySelector("#subtopic-slug"),
   subtopicDescription: document.querySelector("#subtopic-description"),
+  subtopicImportance: document.querySelector("#subtopic-importance"),
   subtopicOrder: document.querySelector("#subtopic-order"),
   subtopicActive: document.querySelector("#subtopic-active"),
   resetSubtopic: document.querySelector("#reset-subtopic"),
@@ -498,9 +499,10 @@ function renderTaxonomyLists() {
       const name = document.createElement("strong");
       name.textContent = subtopic.name;
       const details = document.createElement("small");
+      const importance = Math.min(5, Math.max(1, Number(subtopic.importance) || 3));
       details.textContent = `${topicById(subtopic.topic_id)?.name ?? "No topic"} • ${
         subtopic.slug
-      }`;
+      } • ${"★".repeat(importance)}${"☆".repeat(5 - importance)}`;
       copy.append(name, details);
 
       const actions = document.createElement("div");
@@ -819,6 +821,7 @@ function resetSubtopicForm() {
   adminElements.subtopicForm.reset();
   adminElements.subtopicId.value = "";
   adminElements.subtopicFormTitle.textContent = "إضافة مقطع";
+  adminElements.subtopicImportance.value = "3";
   adminElements.subtopicOrder.value = "0";
   adminElements.subtopicActive.checked = true;
 }
@@ -832,6 +835,7 @@ function editSubtopic(subtopicId) {
   adminElements.subtopicName.value = subtopic.name ?? "";
   adminElements.subtopicSlug.value = subtopic.slug ?? "";
   adminElements.subtopicDescription.value = subtopic.description ?? "";
+  adminElements.subtopicImportance.value = String(subtopic.importance ?? 3);
   adminElements.subtopicOrder.value = String(subtopic.sort_order ?? 0);
   adminElements.subtopicActive.checked = Boolean(subtopic.is_active);
   adminElements.subtopicForm.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -845,6 +849,10 @@ async function saveSubtopic(event) {
     name,
     slug: slugify(adminElements.subtopicSlug.value.trim() || name, "section"),
     description: adminElements.subtopicDescription.value.trim() || null,
+    importance: Math.min(
+      5,
+      Math.max(1, Number(adminElements.subtopicImportance.value) || 3),
+    ),
     sort_order: Number(adminElements.subtopicOrder.value || 0),
     is_active: adminElements.subtopicActive.checked,
   };

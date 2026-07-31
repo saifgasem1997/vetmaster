@@ -212,6 +212,13 @@ function normalizeQuestion(rawQuestion, topicMap = new Map(), subtopicMap = new 
     topic?.name || rawQuestion.topic_name || rawQuestion.category || "General";
   const subtopicName =
     subtopic?.name || rawQuestion.subtopic_name || rawQuestion.disease || "General";
+  const subtopicImportance = Math.min(
+    5,
+    Math.max(
+      1,
+      Number(subtopic?.importance ?? rawQuestion.subtopic_importance ?? 3) || 3,
+    ),
+  );
   const options = Array.isArray(rawQuestion.options)
     ? rawQuestion.options.map((option) => String(option))
     : [];
@@ -245,6 +252,7 @@ function normalizeQuestion(rawQuestion, topicMap = new Map(), subtopicMap = new 
     topicName,
     subtopicId,
     subtopicName,
+    subtopicImportance,
     question: questionText,
     options,
     answer,
@@ -274,15 +282,32 @@ function createDatabaseClient() {
   });
 }
 
+async function loadActiveSubtopics() {
+  const result = await state.db
+    .from("subtopics")
+    .select("id,topic_id,name,slug,importance")
+    .eq("is_active", true);
+
+  if (!result.error) return result;
+
+  const missingImportanceColumn =
+    result.error.code === "42703" ||
+    /importance/i.test(String(result.error.message ?? ""));
+  if (!missingImportanceColumn) return result;
+
+  // Keeps the public bank available while the database migration is pending.
+  return state.db
+    .from("subtopics")
+    .select("id,topic_id,name,slug")
+    .eq("is_active", true);
+}
+
 async function loadQuestionsFromDatabase() {
   if (!state.db) return [];
 
   const [topicsResult, subtopicsResult, questionsResult] = await Promise.all([
     state.db.from("topics").select("id,name,slug").eq("is_active", true),
-    state.db
-      .from("subtopics")
-      .select("id,topic_id,name,slug")
-      .eq("is_active", true),
+    loadActiveSubtopics(),
     state.db
       .from("questions")
       .select(
@@ -547,6 +572,7 @@ function buildCatalog(questions) {
       speciesGroup.subtopics.set(question.subtopicId, {
         id: question.subtopicId,
         name: question.subtopicName,
+        importance: question.subtopicImportance,
         questions: [],
       });
     }
@@ -593,10 +619,7 @@ function createSubtopicLabel(topic, speciesGroup, subtopic) {
   input.dataset.speciesId = speciesGroup.id;
   input.value = subtopic.id;
 
-  const priorities = subtopic.questions.map((question) =>
-    Math.min(5, Math.max(1, Number(question.priority) || 3)),
-  );
-  const importance = Math.max(...priorities);
+  const importance = Math.min(5, Math.max(1, Number(subtopic.importance) || 3));
   label.dataset.importance = String(importance);
   label.dataset.searchText = `${topic.name} ${speciesGroup.name} ${subtopic.name}`.toLocaleLowerCase();
 
