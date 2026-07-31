@@ -190,6 +190,10 @@
                 <label><input type="radio" name="question-count" value="30" /><span>30</span></label>
                 <label><input type="radio" name="question-count" value="all" /><span>الكل</span></label>
               </div>
+              <label class="custom-count-field" for="custom-question-count">
+                <span>أو اكتب العدد الذي تريده</span>
+                <input id="custom-question-count" type="number" min="1" step="1" inputmode="numeric" placeholder="مثال: 45" />
+              </label>
             </section>
 
             <section class="settings-card">
@@ -250,7 +254,12 @@
               <div class="filter-toolbar">
                 <button id="select-all-topics" class="text-button" type="button">تحديد الكل</button>
                 <button id="clear-all-topics" class="text-button" type="button">إلغاء الكل</button>
+                <button id="important-topics" class="text-button" type="button">المهمة فقط ★★★★★</button>
               </div>
+              <label class="topic-search-field">
+                <span class="sr-only">ابحث عن مرض</span>
+                <input id="topic-search" type="search" placeholder="ابحث عن مرض أو موضوع…" autocomplete="off" />
+              </label>
               <div id="topic-options" class="topic-options" aria-live="polite"></div>
             </section>
 

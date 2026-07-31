@@ -1450,6 +1450,28 @@ input[type="number"]:focus-visible {
   outline-offset: 2px;
 }
 
+.custom-count-field {
+  display: grid;
+  grid-template-columns: 1fr 130px;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.custom-count-field input,
+.topic-search-field input {
+  width: 100%;
+  padding: 11px 13px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font: inherit;
+}
+
 .inline-fields {
   display: flex;
   gap: 12px;
@@ -1484,6 +1506,11 @@ input[type="number"]:focus-visible {
   display: flex;
   gap: 14px;
   margin: -6px 0 14px;
+}
+
+.topic-search-field {
+  display: block;
+  margin-bottom: 12px;
 }
 
 .text-button {
@@ -1526,6 +1553,22 @@ input[type="number"]:focus-visible {
   background: rgba(220, 238, 234, 0.46);
 }
 
+.topic-toggle {
+  width: 32px;
+  height: 32px;
+  color: var(--teal);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: transform 160ms ease;
+}
+
+.topic-toggle.open {
+  transform: rotate(180deg);
+}
+
 .topic-heading input,
 .subtopic-list input {
   width: 17px;
@@ -1533,7 +1576,16 @@ input[type="number"]:focus-visible {
   accent-color: var(--teal);
 }
 
-.topic-heading span {
+.topic-selector {
+  display: flex;
+  flex: 1;
+  gap: 11px;
+  align-items: center;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.topic-selector > span {
   display: flex;
   flex: 1;
   align-items: center;
@@ -1561,6 +1613,10 @@ input[type="number"]:focus-visible {
   padding: 12px;
 }
 
+.subtopic-list.collapsed {
+  display: none;
+}
+
 .subtopic-list label {
   display: inline-flex;
   gap: 7px;
@@ -1574,6 +1630,24 @@ input[type="number"]:focus-visible {
   font-size: 11px;
   font-weight: 750;
   direction: ltr;
+}
+
+.subtopic-list label:has(input:checked) {
+  color: var(--ink);
+  background: rgba(220, 238, 234, 0.42);
+  border-color: rgba(38, 112, 100, 0.35);
+}
+
+.subtopic-meta {
+  color: #b47a12;
+  white-space: nowrap;
+  font-size: 9px;
+  letter-spacing: 0.2px;
+}
+
+.subtopic-list label[hidden],
+.topic-group[hidden] {
+  display: none;
 }
 
 .empty-state {
@@ -2070,6 +2144,13 @@ input[type="number"]:focus-visible {
 }
 
 @media (max-width: 640px) {
+  .custom-count-field {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-toolbar {
+    flex-wrap: wrap;
+  }
   .header-actions .header-pill {
     display: none;
   }

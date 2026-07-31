@@ -69,6 +69,9 @@ const elements = {
   topicOptions: document.querySelector("#topic-options"),
   selectAllTopics: document.querySelector("#select-all-topics"),
   clearAllTopics: document.querySelector("#clear-all-topics"),
+  importantTopics: document.querySelector("#important-topics"),
+  topicSearch: document.querySelector("#topic-search"),
+  customQuestionCount: document.querySelector("#custom-question-count"),
   totalTimeField: document.querySelector("#total-time-field"),
   questionTimeField: document.querySelector("#question-time-field"),
   totalMinutes: document.querySelector("#total-minutes"),
@@ -478,8 +481,10 @@ function buildCatalog(questions) {
       topic.subtopics.set(question.subtopicId, {
         id: question.subtopicId,
         name: question.subtopicName,
+        questions: [],
       });
     }
+    topic.subtopics.get(question.subtopicId).questions.push(question);
   });
   return [...topics.values()].sort((first, second) =>
     first.name.localeCompare(second.name, "en"),
@@ -502,9 +507,13 @@ function renderTopicOptions(questions) {
   catalog.forEach((topic) => {
     const group = document.createElement("article");
     group.className = "topic-group";
+    group.dataset.searchText = topic.name.toLocaleLowerCase();
 
-    const heading = document.createElement("label");
+    const heading = document.createElement("div");
     heading.className = "topic-heading";
+
+    const topicSelector = document.createElement("label");
+    topicSelector.className = "topic-selector";
 
     const topicInput = document.createElement("input");
     topicInput.type = "checkbox";
@@ -520,11 +529,18 @@ function renderTopicOptions(questions) {
     topicCount.textContent = `${count} سؤال`;
     topicCopy.append(topicName, topicCount);
 
-    heading.append(topicInput, topicCopy);
+    const topicToggle = document.createElement("button");
+    topicToggle.type = "button";
+    topicToggle.className = "topic-toggle";
+    topicToggle.setAttribute("aria-expanded", "false");
+    topicToggle.setAttribute("aria-label", `عرض أمراض ${topic.name}`);
+    topicToggle.textContent = "⌄";
+    topicSelector.append(topicInput, topicCopy);
+    heading.append(topicSelector, topicToggle);
     group.append(heading);
 
     const subtopicList = document.createElement("div");
-    subtopicList.className = "subtopic-list";
+    subtopicList.className = "subtopic-list collapsed";
     [...topic.subtopics.values()]
       .sort((first, second) => first.name.localeCompare(second.name, "en"))
       .forEach((subtopic) => {
@@ -535,13 +551,29 @@ function renderTopicOptions(questions) {
         input.className = "subtopic-check";
         input.dataset.topicId = topic.id;
         input.value = subtopic.id;
+        const priorities = subtopic.questions.map((question) =>
+          Math.min(5, Math.max(1, Number(question.priority) || 3)),
+        );
+        const importance = Math.max(...priorities);
+        label.dataset.importance = String(importance);
+        label.dataset.searchText = `${topic.name} ${subtopic.name}`.toLocaleLowerCase();
         const text = document.createElement("span");
         text.textContent = subtopic.name;
-        label.append(input, text);
+        const meta = document.createElement("small");
+        meta.className = "subtopic-meta";
+        meta.setAttribute("aria-label", `الأهمية ${importance} من 5`);
+        meta.textContent = `${"★".repeat(importance)}${"☆".repeat(5 - importance)} · ${subtopic.questions.length}`;
+        label.append(input, text, meta);
         subtopicList.append(label);
       });
     group.append(subtopicList);
     elements.topicOptions.append(group);
+
+    topicToggle.addEventListener("click", () => {
+      const isCollapsed = subtopicList.classList.toggle("collapsed");
+      topicToggle.setAttribute("aria-expanded", String(!isCollapsed));
+      topicToggle.classList.toggle("open", !isCollapsed);
+    });
 
     topicInput.addEventListener("change", () => {
       subtopicList.querySelectorAll(".subtopic-check").forEach((input) => {
@@ -593,6 +625,39 @@ function updateAvailableCount() {
   const count = getFilteredQuestions().length;
   elements.availableCount.textContent = String(count);
   elements.launchExam.disabled = count === 0;
+  elements.customQuestionCount.max = String(Math.max(count, 1));
+}
+
+function filterTopicOptions(query = "") {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  elements.topicOptions.querySelectorAll(".topic-group").forEach((group) => {
+    let visibleSubtopics = 0;
+    group.querySelectorAll(".subtopic-list label").forEach((label) => {
+      const matches = !normalizedQuery || label.dataset.searchText.includes(normalizedQuery);
+      label.hidden = !matches;
+      if (matches) visibleSubtopics += 1;
+    });
+    group.hidden = visibleSubtopics === 0;
+    if (normalizedQuery && visibleSubtopics > 0) {
+      group.querySelector(".subtopic-list").classList.remove("collapsed");
+      group.querySelector(".topic-toggle").classList.add("open");
+      group.querySelector(".topic-toggle").setAttribute("aria-expanded", "true");
+    }
+  });
+}
+
+function selectImportantTopics() {
+  elements.topicOptions.querySelectorAll(".subtopic-list label").forEach((label) => {
+    label.querySelector(".subtopic-check").checked = Number(label.dataset.importance) === 5;
+  });
+  elements.topicOptions.querySelectorAll(".topic-group").forEach((group) => {
+    const topicInput = group.querySelector(".topic-check");
+    const inputs = [...group.querySelectorAll(".subtopic-check")];
+    const selectedCount = inputs.filter((input) => input.checked).length;
+    topicInput.checked = selectedCount > 0;
+    topicInput.indeterminate = selectedCount > 0 && selectedCount < inputs.length;
+  });
+  updateAvailableCount();
 }
 
 function openSetup(source = "all") {
@@ -610,6 +675,7 @@ function openSetup(source = "all") {
   }
 
   state.setupSource = source;
+  elements.topicSearch.value = "";
   elements.setupKicker.textContent =
     source === "mistakes"
       ? "تدريب على الأخطاء"
@@ -631,8 +697,11 @@ function readSettings() {
     elements.examSettings.querySelector('input[name="feedback-mode"]:checked')?.value ??
     "exam";
 
+  const customCount = Number(elements.customQuestionCount.value);
   return {
-    count: rawCount === "all" ? "all" : Number(rawCount),
+    count: Number.isInteger(customCount) && customCount > 0
+      ? customCount
+      : rawCount === "all" ? "all" : Number(rawCount),
     timerMode,
     totalMinutes: Number(elements.totalMinutes.value),
     questionSeconds: Number(elements.questionSeconds.value),
@@ -1306,7 +1375,17 @@ elements.examSettings.addEventListener("submit", (event) => {
 });
 elements.selectAllTopics.addEventListener("click", () => selectAllTopics(true));
 elements.clearAllTopics.addEventListener("click", () => selectAllTopics(false));
+elements.importantTopics.addEventListener("click", selectImportantTopics);
+elements.topicSearch.addEventListener("input", () => filterTopicOptions(elements.topicSearch.value));
+elements.customQuestionCount.addEventListener("input", () => {
+  if (elements.customQuestionCount.value) {
+    elements.examSettings.querySelectorAll('input[name="question-count"]').forEach((input) => {
+      input.checked = false;
+    });
+  }
+});
 elements.examSettings.addEventListener("change", (event) => {
+  if (event.target.name === "question-count") elements.customQuestionCount.value = "";
   if (event.target.name === "timer-mode") updateTimerSettingFields();
   updateAvailableCount();
 });
