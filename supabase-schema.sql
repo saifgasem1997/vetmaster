@@ -189,7 +189,11 @@ values
   ('Meat Hygiene & Inspection', 'meat-hygiene-inspection', 100),
   ('Arabic Language', 'arabic-language', 110),
   ('English Language', 'english-language', 120),
-  ('General Aptitude', 'general-aptitude', 130)
+  ('General Aptitude', 'general-aptitude', 130),
+  ('Microscopy', 'microscopy', 140),
+  ('Biochemistry', 'biochemistry', 150),
+  ('Hematology', 'hematology', 160),
+  ('Quality Control', 'quality-control', 170)
 on conflict (slug) do update
 set
   name = excluded.name,
