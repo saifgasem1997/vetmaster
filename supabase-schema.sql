@@ -186,7 +186,10 @@ values
   ('Microbiology Laboratory', 'microbiology-laboratory', 70),
   ('Diagnostic Techniques', 'diagnostic-techniques', 80),
   ('General Veterinary Knowledge', 'general-veterinary-knowledge', 90),
-  ('Meat Hygiene & Inspection', 'meat-hygiene-inspection', 100)
+  ('Meat Hygiene & Inspection', 'meat-hygiene-inspection', 100),
+  ('Arabic Language', 'arabic-language', 110),
+  ('English Language', 'english-language', 120),
+  ('General Aptitude', 'general-aptitude', 130)
 on conflict (slug) do update
 set
   name = excluded.name,
