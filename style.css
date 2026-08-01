@@ -648,6 +648,19 @@ input:focus-visible + .option {
   text-align: left;
 }
 
+.disease-name-highlight {
+  padding: 0 0.08em;
+  color: #87520d;
+  background: linear-gradient(
+    180deg,
+    transparent 58%,
+    rgba(216, 164, 72, 0.38) 58%
+  );
+  border-radius: 0.12em;
+  font: inherit;
+  font-weight: 800;
+}
+
 .options-list {
   display: grid;
   gap: 11px;
