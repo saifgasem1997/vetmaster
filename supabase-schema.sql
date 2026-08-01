@@ -193,7 +193,13 @@ values
   ('Microscopy', 'microscopy', 140),
   ('Biochemistry', 'biochemistry', 150),
   ('Hematology', 'hematology', 160),
-  ('Quality Control', 'quality-control', 170)
+  ('Clinical Chemistry', 'clinical-chemistry', 170),
+  ('Microbiology', 'microbiology', 180),
+  ('Immunology & Serology', 'immunology-serology', 190),
+  ('Blood Bank', 'blood-bank', 200),
+  ('Parasitology', 'parasitology', 210),
+  ('Urinalysis & Body Fluids', 'urinalysis-body-fluids', 220),
+  ('Quality Control & Lab Safety', 'quality-control', 230)
 on conflict (slug) do update
 set
   name = excluded.name,
