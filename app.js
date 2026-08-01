@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
 
 const OPTION_LETTERS = ["A", "B", "C", "D"];
 const DRAFT_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+let answerAudioContext = null;
 const DIFFICULTY_LABELS = {
   easy: "سهل",
   medium: "متوسط",
@@ -1059,6 +1060,133 @@ function updateQuestionTools(question) {
   elements.flagQuestion.setAttribute("aria-pressed", String(isFlagged));
 }
 
+function escapeRegularExpression(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getDiseaseNameCandidates(question) {
+  const cleanName = String(question?.subtopicName || "")
+    .replace(/[★☆]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleanName) return [];
+
+  const candidates = [
+    cleanName,
+    cleanName.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim(),
+  ];
+
+  for (const match of cleanName.matchAll(/\(([^)]+)\)/g)) {
+    candidates.push(match[1].trim());
+  }
+
+  candidates.push(...(cleanName.match(/\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*\b/g) || []));
+
+  return [...new Set(candidates)]
+    .filter((name) => name.length >= 3 || /^[A-Z]{2}(?:-\d+)?$/.test(name))
+    .sort((first, second) => second.length - first.length);
+}
+
+function renderQuestionText(question) {
+  const questionText = String(question?.question || "");
+  const candidates = getDiseaseNameCandidates(question);
+
+  elements.questionText.replaceChildren();
+  if (!candidates.length) {
+    elements.questionText.textContent = questionText;
+    return;
+  }
+
+  const matcher = new RegExp(
+    candidates.map(escapeRegularExpression).join("|"),
+    "giu",
+  );
+  let cursor = 0;
+  let match;
+
+  while ((match = matcher.exec(questionText)) !== null) {
+    const previousCharacter = questionText[match.index - 1] || "";
+    const nextCharacter = questionText[match.index + match[0].length] || "";
+    const touchesPreviousWord =
+      previousCharacter && /[\p{L}\p{N}]/u.test(previousCharacter);
+    const touchesNextWord = nextCharacter && /[\p{L}\p{N}]/u.test(nextCharacter);
+
+    if (touchesPreviousWord || touchesNextWord) continue;
+
+    if (match.index > cursor) {
+      elements.questionText.append(
+        document.createTextNode(questionText.slice(cursor, match.index)),
+      );
+    }
+
+    const diseaseName = document.createElement("span");
+    diseaseName.className = "disease-name-highlight";
+    diseaseName.textContent = match[0];
+    elements.questionText.append(diseaseName);
+    cursor = match.index + match[0].length;
+  }
+
+  if (cursor < questionText.length) {
+    elements.questionText.append(document.createTextNode(questionText.slice(cursor)));
+  }
+}
+
+function playAnswerSound(isCorrect) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  try {
+    answerAudioContext ||= new AudioContextClass();
+    if (answerAudioContext.state === "suspended") {
+      void answerAudioContext.resume();
+    }
+
+    const startTime = answerAudioContext.currentTime + 0.01;
+    const notes = isCorrect
+      ? [
+          { frequency: 659.25, delay: 0, duration: 0.13, type: "sine" },
+          { frequency: 783.99, delay: 0.1, duration: 0.18, type: "sine" },
+        ]
+      : [
+          {
+            frequency: 220,
+            endFrequency: 155.56,
+            delay: 0,
+            duration: 0.24,
+            type: "triangle",
+          },
+        ];
+
+    notes.forEach((note) => {
+      const oscillator = answerAudioContext.createOscillator();
+      const gain = answerAudioContext.createGain();
+      const noteStart = startTime + note.delay;
+      const noteEnd = noteStart + note.duration;
+
+      oscillator.type = note.type;
+      oscillator.frequency.setValueAtTime(note.frequency, noteStart);
+      if (note.endFrequency) {
+        oscillator.frequency.exponentialRampToValueAtTime(note.endFrequency, noteEnd);
+      }
+
+      gain.gain.setValueAtTime(0.0001, noteStart);
+      gain.gain.exponentialRampToValueAtTime(
+        isCorrect ? 0.075 : 0.055,
+        noteStart + 0.018,
+      );
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteEnd);
+
+      oscillator.connect(gain);
+      gain.connect(answerAudioContext.destination);
+      oscillator.start(noteStart);
+      oscillator.stop(noteEnd + 0.02);
+    });
+  } catch (error) {
+    console.debug("Answer sound is unavailable in this browser.", error);
+  }
+}
+
 function renderStudyFeedback(question, answerIndex) {
   const shouldShow =
     state.settings.feedbackMode === "study" && state.locked[state.currentIndex];
@@ -1098,7 +1226,7 @@ function renderQuestion() {
     ? `${catalogPath.speciesName} • ${question.subtopicName}`
     : question.subtopicName;
   elements.questionNumberMark.textContent = String(questionNumber).padStart(2, "0");
-  elements.questionText.textContent = question.question;
+  renderQuestionText(question);
   elements.progressTrack.setAttribute("aria-valuenow", String(questionNumber));
   elements.progressValue.style.width = `${(questionNumber / totalQuestions) * 100}%`;
 
@@ -1159,6 +1287,7 @@ function renderQuestion() {
       state.answers[state.currentIndex] = optionIndex;
       if (state.settings.feedbackMode === "study") {
         state.locked[state.currentIndex] = true;
+        playAnswerSound(optionIndex === question.answer);
         renderQuestion();
       } else {
         updateAnswerStatus();
