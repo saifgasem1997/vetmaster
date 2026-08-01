@@ -181,10 +181,12 @@ values
   ('Bacterial Diseases', 'bacterial-diseases', 20),
   ('Parasitic Diseases', 'parasitic-diseases', 30),
   ('Veterinary Drugs', 'veterinary-drugs', 40),
-  ('Laboratory & Diagnostics', 'laboratory-diagnostics', 50),
-  ('Vaccines & Immunology', 'vaccines-immunology', 60),
-  ('Public Health', 'public-health', 70),
-  ('Meat Hygiene & Inspection', 'meat-hygiene-inspection', 80)
+  ('Public Health', 'public-health', 50),
+  ('Veterinary Immunology', 'veterinary-immunology', 60),
+  ('Microbiology Laboratory', 'microbiology-laboratory', 70),
+  ('Diagnostic Techniques', 'diagnostic-techniques', 80),
+  ('General Veterinary Knowledge', 'general-veterinary-knowledge', 90),
+  ('Meat Hygiene & Inspection', 'meat-hygiene-inspection', 100)
 on conflict (slug) do update
 set
   name = excluded.name,
